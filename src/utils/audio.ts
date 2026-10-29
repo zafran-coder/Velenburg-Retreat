@@ -46,6 +46,12 @@ class AudioManager {
       // Audio autoplay restrictions gracefully handled
     }
   }
+
+  public playSuccessChime() {
+    if (this.isMuted) return;
+    this.playChime(587.33, 0.12);
+    setTimeout(() => this.playChime(880, 0.18), 100);
+  }
 }
 
 export const luxuryAudio = new AudioManager();

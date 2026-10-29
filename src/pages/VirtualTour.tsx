@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -11,363 +11,315 @@ import {
   CheckCircle,
   Info,
   Move3d,
-  Star,
+  BedDouble,
+  Coffee,
+  Maximize2,
+  Flame,
+  MessageCircle,
+  ShieldCheck,
+  Trees,
+  Plus,
+  X
 } from 'lucide-react';
 import PageTransition, { Reveal, Stagger, StaggerItem } from '../components/Transitions';
-import TiltCard from '../components/Interactive3DCard';
-import { AuroraBackground, SectionHead, Marquee } from '../components/ui';
+import WhatsAppBookingModal from '../components/WhatsAppBookingModal';
+import { ROOMS_DATA, RoomSuite } from '../data/roomsData';
+import { RETREAT_CONFIG, formatPKR } from '../data/retreatConfig';
 import { luxuryAudio } from '../utils/audio';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-type Mode = 'golden' | 'daylight' | 'midnight';
+type AmbienceMode = 'daylight' | 'golden' | 'night';
 
-interface Room {
-  id: string;
-  name: string;
-  place: string;
-  stars: string;
-  area: string;
-  scenes: Record<Mode, string>;
-  features: string[];
-  pieces: { name: string; tag: string; price: string }[];
-}
-
-const rooms: Room[] = [
+const ambienceModes: { id: AmbienceMode; label: string; icon: any; filter: string; desc: string }[] = [
   {
-    id: 'royal-atrium',
-    name: 'The Royal Atrium',
-    place: 'Dubai',
-    stars: '7★',
-    area: '620 m²',
-    scenes: {
-      golden: 'https://images.pexels.com/photos/29000086/pexels-photo-29000086.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      daylight: 'https://images.pexels.com/photos/14036253/pexels-photo-14036253.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      midnight: 'https://images.pexels.com/photos/12387992/pexels-photo-12387992.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-    },
-    features: [
-      'Double-height backlit onyx wall',
-      'Sculpted floral monoliths',
-      'Acoustic wool ceiling baffles',
-    ],
-    pieces: [
-      { name: 'Solstice Curve Sectional', tag: 'Living', price: '$8,400' },
-      { name: 'Cyan Halo Chandelier', tag: 'Lighting', price: '$4,500' },
-      { name: 'Basalt Monolith Table', tag: 'Stone', price: '$3,600' },
-    ],
+    id: 'daylight',
+    label: 'Morning Alpine Sun',
+    icon: Sun,
+    filter: 'brightness(1.05) saturate(1.05)',
+    desc: 'Crisp morning daylight reflecting off Himalayan pine needles at 7,200 ft.',
   },
   {
-    id: 'lagoon-villa',
-    name: 'Lagoon Crystal Villa',
-    place: 'Maldives',
-    stars: '7★',
-    area: '410 m²',
-    scenes: {
-      golden: 'https://images.pexels.com/photos/24807133/pexels-photo-24807133.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      daylight: 'https://images.pexels.com/photos/9845436/pexels-photo-9845436.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      midnight: 'https://images.pexels.com/photos/6585757/pexels-photo-6585757.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-    },
-    features: ['Glass floor panels', 'Teal infinity edge', 'Teak & linen tactile palette'],
-    pieces: [
-      { name: 'Crystal Sanctuary Bed', tag: 'Sleep', price: '$6,800' },
-      { name: 'Abyss Swivel Chair', tag: 'Lounge', price: '$3,850' },
-      { name: 'Strata Linear Sconce', tag: 'Lighting', price: '$3,200' },
-    ],
+    id: 'golden',
+    label: 'Golden Hour Dusk',
+    icon: Sparkles,
+    filter: 'sepia(0.2) contrast(1.05) brightness(0.98)',
+    desc: 'Rich amber sunset filtering through the suite sunrooms and open terrace.',
   },
   {
-    id: 'clifftop-estate',
-    name: 'Clifftop Infinity Estate',
-    place: 'Bali',
-    stars: '7★',
-    area: '540 m²',
-    scenes: {
-      golden: 'https://images.pexels.com/photos/34790496/pexels-photo-34790496.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      daylight: 'https://images.pexels.com/photos/35113998/pexels-photo-35113998.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-      midnight: 'https://images.pexels.com/photos/26729563/pexels-photo-26729563.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1080&w=1920',
-    },
-    features: ['Cantilevered pool terraces', 'Volcanic basalt flooring', 'Open-air pavilion lounges'],
-    pieces: [
-      { name: 'Kanso Dining Chair', tag: 'Dining', price: '$1,650' },
-      { name: 'Lumina Fluted Credenza', tag: 'Living', price: '$6,200' },
-      { name: 'Cyan Halo Chandelier', tag: 'Lighting', price: '$4,500' },
-    ],
+    id: 'night',
+    label: 'Cozy Mountain Night',
+    icon: Moon,
+    filter: 'contrast(1.1) brightness(0.85) hue-rotate(-5deg)',
+    desc: 'Intimate evening warmth with electric duvets and quiet pine breezes.',
   },
-];
-
-const modes: { id: Mode; label: string; icon: typeof Sun; tint: string }[] = [
-  { id: 'golden', label: 'Golden Hour', icon: Sun, tint: 'bg-amber-500' },
-  { id: 'daylight', label: 'Daylight', icon: Sparkles, tint: 'bg-cyan-glow' },
-  { id: 'midnight', label: 'Midnight', icon: Moon, tint: 'bg-cyan-deep' },
 ];
 
 export default function VirtualTour() {
-  const [room, setRoom] = useState(0);
-  const [mode, setMode] = useState<Mode>('golden');
-  const [showInfo, setShowInfo] = useState(true);
+  const [selectedSuiteId, setSelectedSuiteId] = useState<number>(ROOMS_DATA[0].id);
+  const [ambience, setAmbience] = useState<AmbienceMode>('golden');
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [activePinId, setActivePinId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const current = rooms[room];
+  const selectedSuite = useMemo(() => {
+    return ROOMS_DATA.find((r) => r.id === selectedSuiteId) || ROOMS_DATA[0];
+  }, [selectedSuiteId]);
+
+  const activeAmbience = ambienceModes.find((a) => a.id === ambience)!;
+
+  const currentPhoto = selectedSuite.photos[activePhotoIdx] || selectedSuite.photos[0];
+
+  const handleSelectSuite = (id: number) => {
+    luxuryAudio.playChime(600, 0.06);
+    setSelectedSuiteId(id);
+    setActivePhotoIdx(0);
+    setActivePinId(null);
+  };
+
+  const handleSelectAmbience = (mode: AmbienceMode) => {
+    luxuryAudio.playChime(680, 0.05);
+    setAmbience(mode);
+  };
 
   return (
     <PageTransition>
-      <section className="relative pt-32 pb-8 overflow-hidden">
-        <AuroraBackground />
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
-          <SectionHead
-            eyebrow="The Online Showroom"
-            title="Three Interiors, Staged and Ready to View"
-            highlight={['Staged']}
-            description="Explore completed projects in the browser. Adjust the lighting from morning to evening, read the specification, and enquire about any piece on display."
+      {/* ================= HERO WITH REAL ESTATE OUTLOOK ================= */}
+      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 bg-[#0F172A] text-alabaster border-b border-slate-700/80 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <img
+            src="/images/velenburg-exterior.jpg"
+            alt="Velenburg Retreat Murree Real Exterior Outlook"
+            className="w-full h-full object-cover object-center filter brightness-100 contrast-[1.02]"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/45" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Reveal>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-[#DFBF77] text-xs font-semibold tracking-[0.2em] uppercase mb-6 shadow-md">
+              <Move3d size={14} strokeWidth={1.75} className="text-[#B48A3E]" />
+              <span>Interactive Tour · Gharial Camp, Murree</span>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-[1.1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.7)]">
+              Interactive Suite Explorer <br />
+              <span className="text-[#DFBF77]">& Mountain Views</span>
+            </h1>
+          </Reveal>
+
+          <Reveal delay={0.2}>
+            <p className="mt-6 text-base font-normal text-slate-100 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+              Explore our four luxury suites and scenic mountain lounge with authentic photography, room highlights, and time-of-day atmospheric filters.
+            </p>
+          </Reveal>
         </div>
       </section>
 
-      {/* STAGE */}
-      <section className="px-4 sm:px-8 pb-14">
-        <div className="max-w-7xl mx-auto">
-          <Reveal direction="scale">
-            <div className="relative rounded-[28px] overflow-hidden shadow-lux border border-cyan-core/20 bg-abyss min-h-[560px] md:min-h-[660px] flex flex-col justify-between p-5 sm:p-7">
-              {/* scene crossfade */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={`${current.id}-${mode}`}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.99 }}
-                  transition={{ duration: 0.9, ease: EASE }}
-                  className="absolute inset-0"
-                >
-                  <img src={current.scenes[mode]} alt={current.name} className="w-full h-full object-cover" />
-                  <div
-                    className={`absolute inset-0 transition-colors duration-700 ${
-                      mode === 'golden'
-                        ? 'bg-amber-900/20'
-                        : mode === 'daylight'
-                        ? 'bg-cyan-900/10'
-                        : 'bg-abyss/55'
-                    }`}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-abyss via-abyss/25 to-abyss/45" />
-                </motion.div>
-              </AnimatePresence>
-
-              {/* TOP HUD */}
-              <div className="relative z-20 flex flex-wrap items-start justify-between gap-3">
-                <div className="glass-dark rounded-full pl-3 pr-4 py-2 flex items-center gap-3 text-white">
-                  <span className="h-2.5 w-2.5 rounded-full bg-teal-glow animate-pulse" />
-                  <div className="leading-tight">
-                    <span className="block text-[13px] font-medium tracking-tight">{current.name}</span>
-                    <span className="block text-[10px] text-crystal/60">
-                      {current.place} · {current.stars} · {current.area}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="glass-dark rounded-full p-1.5 flex items-center gap-1">
-                  {modes.map((m) => {
-                    const Icon = m.icon;
-                    const isActive = mode === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          luxuryAudio.playChime(720, 0.07);
-                          setMode(m.id);
-                        }}
-                        className={`relative px-3 py-1.5 rounded-full text-[10px] type-eyebrow flex items-center gap-1.5 transition-colors ${
-                          isActive ? 'text-ink' : 'text-crystal/70 hover:text-white'
-                        }`}
-                      >
-                        {isActive && (
-                          <motion.span
-                            layoutId="modePill"
-                            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                            className={`absolute inset-0 rounded-full ${m.tint}`}
-                          />
-                        )}
-                        <Icon size={12} className="relative" />
-                        <span className="relative hidden sm:inline">{m.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
+      {/* ================= EXPLORER STAGE ================= */}
+      <section className="py-16 md:py-24 bg-alabaster">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Controls Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+            {/* Suite Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              {ROOMS_DATA.map((r, i) => (
                 <button
-                  onClick={() => setShowInfo((s) => !s)}
-                  className={`h-10 w-10 grid place-items-center rounded-full border transition-all ${
-                    showInfo
-                      ? 'bg-white text-ink border-white'
-                      : 'glass-dark text-white border-white/20 hover:bg-white/15'
+                  key={r.id}
+                  onClick={() => handleSelectSuite(r.id)}
+                  className={`px-4 py-2.5 rounded-full text-xs tracking-wider uppercase transition-all duration-300 font-semibold cursor-pointer ${
+                    selectedSuiteId === r.id
+                      ? 'bg-[#0F172A] text-white border border-[#B48A3E] shadow-sm'
+                      : 'bg-alabaster text-slate-700 hover:bg-slate-100 border border-slate-200'
                   }`}
-                  aria-label="Toggle details"
                 >
-                  <Info size={15} />
+                  Suite 0{i + 1}
                 </button>
-              </div>
+              ))}
+            </div>
 
-              {/* INFO DRAWER */}
-              <AnimatePresence>
-                {showInfo && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 26 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 26 }}
-                    transition={{ duration: 0.5, ease: EASE }}
-                    className="relative z-20 self-end w-full sm:w-[330px] glass-dark rounded-[22px] p-6 text-white my-auto shadow-2xl"
+            {/* Time of Day Ambience Switcher */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold mr-1">
+                Atmosphere:
+              </span>
+              {ambienceModes.map((m) => {
+                const Icon = m.icon;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelectAmbience(m.id)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                      ambience === m.id
+                        ? 'bg-[#B48A3E] text-white font-semibold shadow-xs'
+                        : 'bg-alabaster text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
                   >
-                    <span className="type-eyebrow text-cyan-glow text-[9.5px]">Project Notes</span>
-                    <h4 className="type-title text-[18px] mt-2.5">{current.name}</h4>
-                    <div className="mt-4 space-y-2">
-                      {current.features.map((f) => (
-                        <div key={f} className="flex items-start gap-2 text-[12px] text-crystal/80">
-                          <CheckCircle size={13} className="text-teal-glow mt-0.5 shrink-0" />
-                          {f}
-                        </div>
-                      ))}
-                    </div>
-                    <Link
-                      to="/contact"
-                      className="mt-5 block text-center py-2.5 rounded-full bg-white text-ink text-[10px] type-eyebrow hover:bg-cyan-glow transition-colors"
+                    <Icon size={14} strokeWidth={1.75} />
+                    <span className="hidden sm:inline">{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Interactive Stage Viewport */}
+          <div className="relative rounded-2xl overflow-hidden bg-[#0F172A] border border-slate-700/80 shadow-2xl min-h-[500px] md:min-h-[620px] flex flex-col justify-between">
+            {/* Background Image with Ambience Filter */}
+            <div
+              className="absolute inset-0 transition-all duration-700 ease-out"
+              style={{ filter: activeAmbience.filter }}
+            >
+              <img
+                src={currentPhoto.url}
+                alt={currentPhoto.caption}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40" />
+            </div>
+
+            {/* Interactive Hotspot Pins Layer (Only shown when first photo is active) */}
+            {activePhotoIdx === 0 && selectedSuite.hotspots && (
+              <div className="absolute inset-0 pointer-events-none">
+                {selectedSuite.hotspots.map((h) => {
+                  const isPinActive = activePinId === h.id;
+                  return (
+                    <div
+                      key={h.id}
+                      style={{ left: `${h.x}%`, top: `${h.y}%` }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-20"
                     >
-                      Enquire About This Project
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* BOTTOM HUD */}
-              <div className="relative z-20 space-y-4">
-                <div className="glass-dark rounded-[20px] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-white">
-                  <span className="inline-flex items-center gap-2 text-[9.5px] type-eyebrow text-crystal/70">
-                    <Layers size={14} className="text-cyan-glow" /> Specified in this room
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {current.pieces.map((p) => (
-                      <Link
-                        key={p.name}
-                        to="/collections"
-                        className="group inline-flex items-center gap-2 rounded-full bg-white/10 hover:bg-white px-3 py-1.5 text-[11px] transition-colors"
-                      >
-                        <span>{p.name}</span>
-                        <span className="text-[10px] text-cyan-glow group-hover:text-ink">{p.price}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {rooms.map((r, i) => {
-                    const isActive = i === room;
-                    return (
                       <button
-                        key={r.id}
-                        onClick={() => {
-                          luxuryAudio.playChime(600, 0.09);
-                          setRoom(i);
-                        }}
-                        className={`px-5 py-2 rounded-full text-[10px] type-eyebrow border transition-all ${
-                          isActive
-                            ? 'bg-white text-ink border-white shadow-lg'
-                            : 'glass-dark text-crystal/75 border-white/15 hover:bg-white/15'
+                        type="button"
+                        onClick={() => setActivePinId(isPinActive ? null : h.id)}
+                        className={`h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
+                          isPinActive
+                            ? 'bg-[#B48A3E] text-white scale-110 ring-4 ring-[#B48A3E]/40'
+                            : 'bg-[#0F172A]/90 text-[#DFBF77] border border-[#B48A3E]/50 hover:scale-110 hover:bg-[#B48A3E] hover:text-white'
                         }`}
+                        aria-label={h.title}
                       >
-                        {r.place}
+                        {isPinActive ? <X size={15} strokeWidth={1.75} /> : <Plus size={16} strokeWidth={1.75} />}
                       </button>
-                    );
-                  })}
-                </div>
+
+                      {/* Popover Card */}
+                      <AnimatePresence>
+                        {isPinActive && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-56 p-3.5 rounded-xl bg-[#0F172A]/95 text-alabaster border border-[#B48A3E]/40 shadow-2xl backdrop-blur-xl z-30 pointer-events-auto"
+                          >
+                            <span className="text-[10px] uppercase tracking-wider text-[#DFBF77] font-semibold block mb-1">
+                              {h.tag || 'In-Suite Feature'}
+                            </span>
+                            <h5 className="text-xs font-bold text-white">{h.title}</h5>
+                            <p className="text-xs text-slate-300 mt-1 leading-snug">
+                              {h.description || h.desc}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Top Stage Header */}
+            <div className="relative z-10 p-6 md:p-8 flex items-start justify-between">
+              <div className="bg-[#0F172A]/85 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/15">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#DFBF77]">
+                  {selectedSuite.name}
+                </span>
+                <p className="text-xs italic text-slate-300 mt-0.5">
+                  "{selectedSuite.officialTagline}"
+                </p>
+              </div>
+
+              <div className="text-right bg-[#0F172A]/85 backdrop-blur-md px-4 py-2.5 rounded-xl border border-[#B48A3E]/30">
+                <span className="text-xs uppercase tracking-wider text-slate-400 block">
+                  Uniform Suite Rate
+                </span>
+                <span className="text-base font-bold text-[#DFBF77]">
+                  PKR 18,000 / Night
+                </span>
               </div>
             </div>
-          </Reveal>
+
+            {/* Bottom Controls & Photo Selector */}
+            <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="max-w-lg bg-[#0F172A]/85 backdrop-blur-md p-4 rounded-xl border border-white/10">
+                <div className="text-xs text-[#DFBF77] uppercase tracking-wider font-semibold">
+                  {currentPhoto.caption}
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  {activeAmbience.desc} Click any <strong className="text-[#DFBF77]">+</strong> pin to reveal in-suite features.
+                </p>
+              </div>
+
+              {/* Photo Thumbnails Switcher */}
+              <div className="flex items-center gap-2 bg-[#0F172A]/85 backdrop-blur-md p-2 rounded-xl border border-white/10 overflow-x-auto">
+                {selectedSuite.photos.map((p, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      luxuryAudio.playChime(640, 0.05);
+                      setActivePhotoIdx(idx);
+                    }}
+                    className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 cursor-pointer ${
+                      idx === activePhotoIdx
+                        ? 'border-[#B48A3E] scale-105 shadow-md'
+                        : 'border-white/20 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={p.url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Reserve CTA Bar */}
+          <div className="mt-8 bg-white p-6 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div>
+              <h3 className="text-xl font-semibold leading-snug text-[#0F172A]">
+                Ready to Experience {selectedSuite.name}?
+              </h3>
+              <p className="text-base font-normal leading-relaxed text-slate-600 mt-1">
+                Includes tufted king bed, private bath, in-room kettle with Tapal Green Tea, branded toiletries, and mountain terrace access.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                to="/collections"
+                className="border border-slate-300 bg-white text-slate-900 hover:border-[#B48A3E] px-6 py-3 rounded-full text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer"
+              >
+                Compare Suites
+              </Link>
+
+              <button
+                onClick={() => setModalOpen(true)}
+                className="px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md inline-flex items-center gap-2 cursor-pointer"
+              >
+                <MessageCircle size={16} strokeWidth={1.75} className="fill-white" />
+                <span>Reserve via WhatsApp</span>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      <Marquee
-        items={[
-          'COMPLETED PROJECTS',
-          'ADJUSTABLE LIGHTING CONDITIONS',
-          'VERIFIED DIMENSIONS',
-          'FULL SPECIFICATION AVAILABLE',
-          'APPOINTMENTS IN FOUR CITIES',
-        ]}
+      {/* WhatsApp Booking Modal */}
+      <WhatsAppBookingModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialRoom={selectedSuite}
       />
-
-      {/* HOW IT WORKS */}
-      <section className="px-5 sm:px-8 py-16">
-        <div className="max-w-7xl mx-auto">
-          <SectionHead
-            eyebrow="Using the Showroom"
-            title="Three Steps to a Confident Decision"
-            highlight={['Confident']}
-            description="The showroom is designed to answer the questions a photograph cannot."
-          />
-          <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                icon: Move3d,
-                t: 'Study the Room',
-                d: 'Move through each interior to understand sightlines, circulation and the true proportion of every piece.',
-              },
-              {
-                icon: Sun,
-                t: 'Test the Lighting',
-                d: 'Compare morning, midday and evening conditions to see exactly how each finish reads at every hour.',
-              },
-              {
-                icon: Star,
-                t: 'Confirm the Finish',
-                d: 'Send your selection to the studio and receive physical samples in the post within 48 hours.',
-              },
-            ].map((s, i) => (
-              <StaggerItem key={s.t}>
-                <TiltCard depth={8}>
-                  <div className="glass rounded-[22px] p-7 h-full">
-                    <span className="grid place-items-center h-11 w-11 rounded-2xl bg-gradient-to-br from-teal-core to-cyan-glow text-white mb-5">
-                      <s.icon size={18} />
-                    </span>
-                    <span className="type-eyebrow text-cyan-deep text-[10px]">Step 0{i + 1}</span>
-                    <h4 className="type-title text-lg mt-2 text-ink">{s.t}</h4>
-                    <p className="type-body text-[12.5px] text-slate-cool/75 mt-2">{s.d}</p>
-                  </div>
-                </TiltCard>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="px-5 sm:px-8 pb-10">
-        <div className="max-w-6xl mx-auto">
-          <Reveal direction="scale">
-            <div className="relative overflow-hidden rounded-[28px] glass-strong p-8 sm:p-12">
-              <div className="absolute -bottom-24 -left-16 w-96 h-96 rounded-full bg-teal-glow/25 blur-[110px] animate-aurora" />
-              <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-                <div>
-                  <span className="inline-flex items-center gap-2 text-[9.5px] type-eyebrow text-teal-deep">
-                    <Compass size={13} className="text-cyan-core" /> Visit in Person
-                  </span>
-                  <div className="rule-accent w-14 mt-3" />
-                  <h3 className="type-display text-[26px] sm:text-[34px] mt-4 text-ink max-w-lg">
-                    Some Decisions Deserve a Room, Not a Screen.
-                  </h3>
-                  <p className="type-lead text-[13px] text-slate-cool/75 mt-3.5 max-w-md">
-                    Our four showrooms hold the full stone and textile library, with lighting you can
-                    adjust yourself. Appointments are private and last around ninety minutes.
-                  </p>
-                </div>
-                <Link
-                  to="/contact"
-                  onClick={() => luxuryAudio.playChime(660, 0.1)}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-teal-deep to-cyan-core text-white text-[11px] type-eyebrow shadow-lux hover:brightness-110 transition-all shrink-0 group"
-                >
-                  Book an Appointment
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
     </PageTransition>
   );
 }

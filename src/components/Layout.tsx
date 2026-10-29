@@ -1,28 +1,28 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { motion } from 'framer-motion';
-import { ArrowUpRight, ShieldCheck, Sparkles, Gem, Globe, Compass } from 'lucide-react';
-import Navbar, { navItems } from './Navbar';
+import { ShieldCheck, Mountain, MessageCircle, MapPin, CheckCircle2 } from 'lucide-react';
+import Navbar from './Navbar';
+import { navItems } from '../data/navigation';
+import FloatingWhatsApp from './FloatingWhatsApp';
+import { InstagramIcon } from './InstagramIcon';
 import { ScrollProgress } from './ui';
 import { luxuryAudio } from '../utils/audio';
-
-const salons = [
-  { city: 'Dubai', note: 'Sheikh Zayed Road · Daily 10:00–23:00' },
-  { city: 'Doha', note: 'West Bay Lagoon · Daily 10:00–22:00' },
-  { city: 'Paris', note: 'Place Vendôme · Mon–Sat 10:00–19:30' },
-  { city: 'Bali', note: 'Uluwatu · Daily 09:00–21:00' },
-];
+import { RETREAT_CONFIG } from '../data/retreatConfig';
 
 export default function Layout() {
   const { pathname } = useLocation();
+
   const click = () => {
     luxuryAudio.playChime(620, 0.09);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const whatsappUrl = `https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}?text=Assalam-o-Alaikum%20Velenburg%20Retreat!%20🌲%0AI%20would%20like%20to%20inquire%20about%20suite%20availability%20at%20Gharial%20Camp,%20Murree.`;
+
   return (
-    <div className="relative min-h-screen flex flex-col bg-frost text-ink">
+    <div className="relative min-h-screen flex flex-col bg-alabaster text-charcoal font-sans selection:bg-gold/25 selection:text-charcoal">
       <ScrollProgress />
+      {/* Unified Fixed Luxury Header (includes Top Weather Bar & Floating Navbar) */}
       <Navbar />
 
       <main className="flex-grow flex flex-col">
@@ -31,101 +31,136 @@ export default function Layout() {
         </AnimatePresence>
       </main>
 
-      {/* ================= FOOTER ================= */}
-      <footer className="relative mt-24 bg-abyss text-crystal overflow-hidden">
-        {/* animated top hairline */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-glow to-transparent opacity-70" />
-        {/* glow orbs */}
-        <div className="pointer-events-none absolute -top-32 right-0 w-[520px] h-[520px] rounded-full bg-teal-core/20 blur-[130px] animate-aurora" />
-        <div
-          className="pointer-events-none absolute bottom-0 -left-24 w-[480px] h-[480px] rounded-full bg-cyan-deep/25 blur-[130px] animate-aurora"
-          style={{ animationDelay: '-8s' }}
-        />
-        <div className="absolute inset-0 grid-lines opacity-25" />
+      {/* Floating WhatsApp Action Button (Persistent on all pages) */}
+      <FloatingWhatsApp />
 
-        <div className="relative max-w-7xl mx-auto px-6 md:px-12 pt-20 pb-10">
-          {/* CTA ROW */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-14 border-b border-cyan-glow/10">
+      {/* ================= FOOTER ================= */}
+      <footer className="relative mt-20 bg-charcoal text-alabaster overflow-hidden border-t border-gold/30">
+        {/* Animated Gold Hairline */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-60" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-white/10">
+            {/* Col 1: Brand Info */}
             <div className="lg:col-span-5">
               <Link to="/" onClick={click} className="flex items-center gap-3 group w-fit">
-                <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-teal-core via-cyan-core to-cyan-glow shadow-[0_10px_30px_-10px_rgba(34,211,238,0.9)] group-hover:rotate-90 transition-transform duration-700">
-                  <Gem size={18} className="text-white" />
+                <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-charcoal via-slate-800 to-charcoal border border-gold/40 shadow-sm group-hover:rotate-12 transition-transform duration-500">
+                  <Mountain size={18} className="text-gold-light" />
                 </span>
-                <span className="text-2xl font-semibold tracking-[0.3em] text-white">AURA</span>
+                <div>
+                  <span className="text-xl font-bold tracking-[0.2em] text-white">
+                    VELENBURG
+                  </span>
+                  <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77]">
+                    RETREAT · GHARIAL, MURREE
+                  </span>
+                </div>
               </Link>
-              <p className="type-body mt-5 text-[13.5px] text-crystal/60 max-w-sm">
-                A furniture and interiors studio working with hotels, developers and private clients.
-                Established in 1994, with ateliers in Italy and Japan and an installation team that
-                travels worldwide.
+
+              <p className="type-body mt-4 text-xs text-alabaster/70 max-w-sm leading-relaxed">
+                {RETREAT_CONFIG.heroBioTagline}
               </p>
-              <div className="mt-7 flex items-center gap-3">
-                {[Globe, Compass, Sparkles].map((Icon, i) => (
-                  <motion.a
-                    key={i}
-                    href="#"
-                    whileHover={{ y: -4, scale: 1.06 }}
-                    transition={{ type: 'spring', stiffness: 320, damping: 18 }}
-                    className="h-10 w-10 grid place-items-center rounded-full border border-cyan-glow/20 text-crystal/70 hover:text-white hover:border-cyan-glow/60 hover:bg-cyan-core/10 transition-colors"
-                  >
-                    <Icon size={15} />
-                  </motion.a>
-                ))}
+              <p className="text-xs text-alabaster/55 mt-2">
+                Four exclusive luxury mountain suites surrounded by pine forests, valley views, and pure tranquility at 7,200 ft elevation.
+              </p>
+
+              {/* Social & Contact Pills */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <a
+                  href={RETREAT_CONFIG.contact.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-gold/30 px-3.5 py-1.5 text-xs text-alabaster hover:text-gold-light hover:border-gold transition-colors bg-white/5"
+                >
+                  <InstagramIcon size={14} className="text-gold" />
+                  <span>{RETREAT_CONFIG.contact.instagramHandle}</span>
+                </a>
+
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 px-3.5 py-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors bg-white/5"
+                >
+                  <MessageCircle size={14} className="fill-emerald-400 text-emerald-400" />
+                  <span>{RETREAT_CONFIG.contact.displayPhone}</span>
+                </a>
               </div>
             </div>
 
+            {/* Col 2: Navigation Links */}
             <div className="lg:col-span-3">
-              <h4 className="type-eyebrow text-[9.5px] text-cyan-glow mb-5">Site</h4>
-              <ul className="space-y-3 text-[13px] text-crystal/70">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77] mb-4">Explore Retreat</h4>
+              <ul className="space-y-2.5 text-xs text-alabaster/70">
                 {navItems.map((item) => (
                   <li key={item.path}>
                     <Link
                       to={item.path}
                       onClick={click}
-                      className="group inline-flex items-center gap-1.5 hover:text-white transition-colors"
+                      className="group inline-flex items-center gap-1.5 hover:text-gold-light transition-colors"
                     >
-                      <span className="h-px w-0 bg-cyan-glow group-hover:w-4 transition-all duration-300" />
+                      <span className="h-px w-0 bg-gold group-hover:w-3 transition-all duration-300" />
                       {item.name}
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <a
+                    href={RETREAT_CONFIG.contact.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-1.5 hover:text-gold-light transition-colors text-gold/90 font-medium"
+                  >
+                    <span className="h-px w-0 bg-gold group-hover:w-3 transition-all duration-300" />
+                    Instagram Stories (@velenburg)
+                  </a>
+                </li>
               </ul>
             </div>
 
+            {/* Col 3: Policy & Highlights */}
             <div className="lg:col-span-4">
-              <h4 className="type-eyebrow text-[9.5px] text-cyan-glow mb-5">Showrooms</h4>
-              <div className="grid grid-cols-2 gap-4 text-[12px]">
-                {salons.map((s) => (
-                  <div key={s.city} className="group">
-                    <span className="block text-white font-medium group-hover:text-cyan-glow transition-colors">
-                      {s.city}
-                    </span>
-                    <span className="block text-crystal/50 text-[11px] mt-0.5">{s.note}</span>
-                  </div>
-                ))}
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77] mb-4">Stay & Amenities Policy</h4>
+              <div className="p-4 rounded-2xl bg-white/5 border border-gold/20 text-xs text-alabaster/75 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="text-gold shrink-0 mt-0.5" />
+                  <span><strong>Rate:</strong> PKR 18,000 / Night across all 4 luxury suites.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="text-gold shrink-0 mt-0.5" />
+                  <span><strong>Included In-Suite:</strong> Electric kettle, Tapal Green Tea sachets & Velenburg branded luxury toiletries tray.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="text-gold shrink-0 mt-0.5" />
+                  <span><strong>Dining Note:</strong> Self-use kitchen and lounge available. No hotel dinner, lunch, or arrival refreshments.</span>
+                </div>
               </div>
-              <Link
-                to="/contact"
-                onClick={click}
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-ink px-5 py-2.5 text-[10px] type-eyebrow hover:bg-cyan-glow transition-colors group"
-              >
-                Book an Appointment
-                <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </Link>
+
+              <div className="mt-4 flex items-center gap-2 text-xs text-alabaster/60">
+                <MapPin size={13} className="text-gold" />
+                <span>{RETREAT_CONFIG.location.displayAddress}</span>
+              </div>
             </div>
           </div>
 
-          {/* BOTTOM ROW */}
-          <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-crystal/45">
-            <span>© 2026 AURA Interiors Ltd. All rights reserved.</span>
-            <div className="flex flex-wrap items-center justify-center gap-5">
-              <span className="flex items-center gap-1.5 text-crystal/65">
-                <ShieldCheck size={13} className="text-teal-glow" /> FSC-certified timber
+          {/* Bottom Copyright Strip */}
+          <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-alabaster/50">
+            <span>© {new Date().getFullYear()} Velenburg Retreat. All rights reserved. Gharial Camp, Upper Topa, Murree.</span>
+            <div className="flex items-center gap-5">
+              <span className="flex items-center gap-1.5 text-alabaster/70">
+                <ShieldCheck size={13} className="text-gold" /> Direct WhatsApp Booking (No Card Gateway)
               </span>
-              <span className="flex items-center gap-1.5 text-crystal/65">
-                <Sparkles size={13} className="text-cyan-glow" /> Ten-year structural warranty
-              </span>
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <Link to="/admin" onClick={click} className="hover:text-gold-light transition-colors text-alabaster/40 hover:text-alabaster/80">
+                Owner Portal (iCal)
+              </Link>
+              <a
+                href={RETREAT_CONFIG.contact.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gold-light transition-colors"
+              >
+                @velenburg
+              </a>
             </div>
           </div>
         </div>

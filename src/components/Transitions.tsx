@@ -7,10 +7,10 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 export default function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-      transition={{ duration: 0.55, ease: EASE }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.45, ease: EASE }}
       className="w-full flex-grow flex flex-col"
     >
       {children}
@@ -50,7 +50,7 @@ export function Reveal({
     <motion.div
       initial={{ opacity: 0, ...offsets[direction] }}
       whileInView={{ opacity: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' }}
-      viewport={{ once, margin: '-70px' }}
+      viewport={{ once, margin: '0px' }}
       transition={{ duration, delay, ease: EASE }}
       className={className}
     >
@@ -76,7 +76,7 @@ export function Stagger({ children, className = '' }: { children: ReactNode; cla
       variants={staggerParent}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, margin: '-60px' }}
+      viewport={{ once: true, margin: '0px' }}
       className={className}
     >
       {children}
@@ -113,17 +113,11 @@ export function TextReveal({
         const clean = word.replace(/[.,—“”"]/g, '');
         const isHighlight = highlight.includes(clean);
         return (
-          <span key={`${word}-${i}`} className="inline-block overflow-hidden align-bottom">
-            <motion.span
-              initial={{ y: '105%', opacity: 0 }}
-              whileInView={{ y: '0%', opacity: 1 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.8, delay: delay + i * 0.055, ease: EASE }}
-              className={`inline-block ${isHighlight ? highlightClass : ''}`}
-            >
-              {word}
-            </motion.span>
-            {i < words.length - 1 && <span className="inline-block">&nbsp;</span>}
+          <span
+            key={`${word}-${i}`}
+            className={`inline ${isHighlight ? highlightClass : ''}`}
+          >
+            {word}{i < words.length - 1 ? ' ' : ''}
           </span>
         );
       })}
@@ -150,7 +144,7 @@ export function ImageMask({
       <motion.div
         initial={{ clipPath: 'inset(100% 0% 0% 0%)', scale: 1.08 }}
         whileInView={{ clipPath: 'inset(0% 0% 0% 0%)', scale: 1 }}
-        viewport={{ once: true, margin: '-60px' }}
+        viewport={{ once: true, margin: '0px' }}
         transition={{ duration: 1.15, ease: EASE }}
         className="w-full h-full"
       >
@@ -167,7 +161,7 @@ export function ImageMask({
       <motion.div
         initial={{ x: '-120%', opacity: 0 }}
         whileInView={{ x: '120%', opacity: [0, 0.5, 0] }}
-        viewport={{ once: true, margin: '-60px' }}
+        viewport={{ once: true, margin: '0px' }}
         transition={{ duration: 1.4, delay: 0.35, ease: EASE }}
         className="pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent"
       />
@@ -180,12 +174,12 @@ export function InViewLine({ className = '', delay = 0 }: { className?: string; 
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
   return (
-    <div ref={ref} className={`h-px w-full bg-cyan-core/12 overflow-hidden ${className}`}>
+    <div ref={ref} className={`h-px w-full bg-gold/20 overflow-hidden ${className}`}>
       <motion.div
         initial={{ x: '-100%' }}
         animate={inView ? { x: '0%' } : { x: '-100%' }}
         transition={{ duration: 1.1, delay, ease: EASE }}
-        className="h-full w-full bg-gradient-to-r from-teal-core via-cyan-core to-cyan-glow"
+        className="h-full w-full bg-gradient-to-r from-transparent via-gold to-transparent"
       />
     </div>
   );

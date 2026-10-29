@@ -1,319 +1,277 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Compass, ShieldCheck, HeartHandshake, Leaf, Star, Sparkles } from 'lucide-react';
-import PageTransition, { Reveal, Stagger, StaggerItem, ImageMask, TextReveal, InViewLine } from '../components/Transitions';
-import TiltCard from '../components/Interactive3DCard';
-import { AuroraBackground, SectionHead, CountUp, Marquee, Parallax } from '../components/ui';
+import {
+  ArrowRight,
+  Compass,
+  ShieldCheck,
+  Trees,
+  Mountain,
+  HeartHandshake,
+  Coffee,
+  Sparkles,
+  Flame,
+  CheckCircle2,
+  MessageCircle
+} from 'lucide-react';
+import PageTransition, { Reveal, Stagger, StaggerItem } from '../components/Transitions';
+import { AuroraBackground } from '../components/ui';
+import { InstagramIcon } from '../components/InstagramIcon';
+import { RETREAT_CONFIG, formatPKR } from '../data/retreatConfig';
 import { luxuryAudio } from '../utils/audio';
 
-const timeline = [
-  {
-    year: '1994',
-    title: 'First Commission',
-    text: 'A four-person joinery workshop in Lombardy completes its first hotel reception ceiling.',
-  },
-  {
-    year: '2006',
-    title: 'Glass Atelier Opens',
-    text: 'Glassblowing is brought in-house, allowing us to control tint, clarity and lead times directly.',
-  },
-  {
-    year: '2016',
-    title: 'Three Flagship Projects',
-    text: 'Appointed to three landmark properties in Dubai and Doha within a single calendar year.',
-  },
-  {
-    year: '2026',
-    title: 'The Online Showroom',
-    text: 'Every commission now includes a browser-based preview of the room before fabrication begins.',
-  },
-];
+const EASE = [0.16, 1, 0.3, 1] as const;
 
-const ateliers = [
+const milestones = [
   {
-    name: 'Stone Workshop',
-    place: 'Carrara, Italy',
-    image: 'https://images.pexels.com/photos/14011664/pexels-photo-14011664.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=700&w=900',
-    text: 'Diamond-wire cutting, book-matching and the lamination of translucent onyx to glass.',
+    year: 'The Vision',
+    title: 'Peaceful Mountain Haven at 7,200 Ft',
+    text: 'A deliberate choice to establish four private luxury suites away from Murree Mall Road congestion, located high in the quiet pine hills of Gharial Camp.',
   },
   {
-    name: 'Glass Atelier',
-    place: 'Murano, Italy',
-    image: 'https://images.pexels.com/photos/35326200/pexels-photo-35326200.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=700&w=900',
-    text: 'Hand-blown fluted cylinders, in-house tinting and optical clarity testing on every batch.',
+    year: 'Architecture',
+    title: 'Vintage Charm. Modern Comfort.',
+    text: 'Crafting natural timber ceilings, vertical wood slat accent walls, and sunroom sitting nooks that harmonize with the mountain landscape.',
   },
   {
-    name: 'Joinery & Textile Mill',
-    place: 'Kyoto and Como',
-    image: 'https://images.pexels.com/photos/26729563/pexels-photo-26729563.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=700&w=900',
-    text: 'Traditional nail-free joinery, paired with weaving and dyeing carried out to our own recipes.',
+    year: 'Philosophy',
+    title: 'Four Identical Luxury Suites',
+    text: 'Eliminating artificial room tiers. Every suite receives identical luxury amenities, king bedding, ensuite bath, and a uniform PKR 18,000 / Night rate.',
+  },
+  {
+    year: 'Hospitality',
+    title: 'Warm & Peaceful Mountain Stays',
+    text: 'Offering quiet mountain evenings with in-suite tea stations, cozy heated duvets, and an expansive open terrace overlooking pine valleys.',
   },
 ];
 
 const values = [
   {
-    icon: Leaf,
-    t: 'Documented Sourcing',
-    d: 'FSC-certified timber and quarry-traced stone. Provenance paperwork is issued with every order.',
+    icon: Trees,
+    title: 'Pine Forest Conservation',
+    desc: 'Surrounded by protected Himalayan pines, providing guests with fresh cedar-infused alpine air at 7,200 feet.',
   },
   {
     icon: ShieldCheck,
-    t: 'Contract-Grade Construction',
-    d: 'Built for the wear cycles of a working hotel, then detailed for the comfort of a private home.',
+    title: 'Transparent Pricing',
+    desc: 'PKR 18,000 / Night across all 4 suites. Zero hidden booking fees, no sudden peak-season markups.',
   },
   {
-    icon: HeartHandshake,
-    t: 'Restoration for Life',
-    d: 'Any piece, at any age, can return to our workshop and be restored by the people who made it.',
+    icon: Coffee,
+    title: 'In-Room Tea Station',
+    desc: 'In-suite electric kettle, complimentary Tapal Green Tea sachets, and shared self-use kitchen space for guest ease.',
+  },
+  {
+    icon: Flame,
+    title: 'Year-Round Comfort',
+    desc: 'High-power room heating, electric blankets, and standing gas patio heaters on the terrace during cold Murree nights.',
   },
 ];
 
 export default function About() {
-  const click = () => luxuryAudio.playChime(620, 0.09);
+  const whatsappUrl = `https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}?text=Assalam-o-Alaikum%20Velenburg%20Retreat!%20I%20would%20like%20to%20learn%20more%20about%20the%20retreat%20and%20suite%20availability%20(PKR%2018,000%20/%20Night).`;
 
   return (
     <PageTransition>
-      {/* HEADER */}
-      <section className="relative pt-32 pb-10 overflow-hidden">
-        <AuroraBackground />
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
-          <div className="max-w-3xl">
-            <Reveal direction="down">
-              <span className="type-eyebrow text-[9.5px] text-teal-deep inline-flex items-center gap-2.5">
-                <Star size={11} className="text-cyan-core" /> Thirty-two years · Nineteen countries
-              </span>
-              <div className="rule-accent w-16 mt-3" />
-            </Reveal>
-            <h1 className="type-display mt-7 text-[2.2rem] sm:text-[3.1rem] md:text-[3.7rem] text-ink">
-              <TextReveal text="A Studio Built Around" />{' '}
-              <span className="text-gradient">Material and Proportion.</span>
+      {/* ================= HERO WITH REAL ESTATE OUTLOOK ================= */}
+      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 bg-[#0F172A] text-alabaster border-b border-slate-700/80 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <img
+            src="/images/velenburg-exterior.jpg"
+            alt="The Mountain Estate at Velenburg Retreat Murree"
+            className="w-full h-full object-cover object-center filter brightness-100 contrast-[1.02]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/45" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Reveal>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-[#DFBF77] text-xs font-semibold tracking-[0.2em] uppercase mb-6 shadow-md">
+              <Mountain size={14} strokeWidth={1.75} className="text-[#B48A3E]" />
+              <span>The Story of Velenburg Retreat</span>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-[1.1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.7)]">
+              Vintage Charm. <br />
+              <span className="text-[#DFBF77]">Modern Comfort.</span>
             </h1>
-            <Reveal delay={0.3}>
-              <p className="type-lead mt-6 text-[14px] sm:text-[15.5px] text-slate-cool/80 measure-wide">
-                AURA began in 1994 as a four-person joinery workshop. Today we operate three
-                ateliers and an installation team, and we have completed forty-two hospitality
-                projects across nineteen countries. The discipline that work demands now informs
-                everything we make for private clients.
-              </p>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* HERO IMAGE */}
-      <section className="px-5 sm:px-8 pb-16">
-        <div className="max-w-7xl mx-auto">
-          <Reveal direction="scale">
-            <div className="relative rounded-[28px] overflow-hidden shadow-lux h-[52vh] md:h-[68vh]">
-              <ImageMask
-                src="https://images.pexels.com/photos/3926482/pexels-photo-3926482.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1100&w=1800"
-                alt="Grand hotel staircase"
-                className="w-full h-full"
-                zoom={1.05}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-abyss/90 via-transparent to-transparent" />
-              <div className="absolute bottom-6 inset-x-6 sm:inset-x-9 flex flex-col sm:flex-row sm:items-end justify-between gap-5 text-white">
-                <div>
-                  <span className="type-eyebrow text-cyan-glow text-[9.5px]">
-                    Vendôme Stair Hall · Paris, 2022
-                  </span>
-                  <h2 className="type-title text-[20px] sm:text-[30px] mt-2.5 measure">
-                    A Restoration Completed Without Closing the Building.
-                  </h2>
-                </div>
-                <Link
-                  to="/virtual-tour"
-                  onClick={click}
-                  className="inline-flex items-center gap-2 self-start sm:self-auto px-6 py-3 rounded-full glass-dark text-white text-[10px] type-eyebrow border border-white/15 hover:bg-white hover:text-ink transition-colors group shrink-0"
-                >
-                  View Project
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <Marquee
-        items={[
-          'DUBAI · DOHA · PARIS · BALI',
-          'FORTY-TWO HOSPITALITY PROJECTS',
-          'IN-HOUSE GLASS ATELIER',
-          'QUARRY-TRACED STONE',
-          'OWN INSTALLATION TEAM',
-        ]}
-      />
-
-      {/* STATS */}
-      <section className="px-5 sm:px-8 py-16">
-        <div className="max-w-6xl mx-auto">
-          <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { v: 42, s: '', l: 'Hospitality Projects Completed' },
-              { v: 19, s: '', l: 'Countries Delivered To' },
-              { v: 32, s: '', l: 'Years in Practice' },
-              { v: 100, s: '%', l: 'Materials With Documented Origin' },
-            ].map((st) => (
-              <StaggerItem key={st.l}>
-                <TiltCard depth={7}>
-                  <div className="glass rounded-[22px] p-6 text-center h-full">
-                    <CountUp to={st.v} suffix={st.s} className="block type-num text-[2.1rem] sm:text-[2.5rem] text-gradient" />
-                    <span className="text-[11.5px] text-slate-cool/70 mt-2 block leading-snug">{st.l}</span>
-                  </div>
-                </TiltCard>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </div>
-      </section>
-
-      {/* PHILOSOPHY SPLIT */}
-      <section className="px-5 sm:px-8 py-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <Reveal direction="right">
-            <SectionHead
-              eyebrow="Our Approach"
-              title="Materials Chosen for How They Age"
-              highlight={['Age']}
-              align="left"
-              description="We avoid finishes that look best on the day of installation. Stone that softens, timber that warms and leather that patinates will still read correctly in twenty years."
-            />
-            <div className="space-y-3">
-              {values.map((v) => (
-                <div key={v.t} className="flex items-start gap-4 glass rounded-2xl p-4">
-                  <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-teal-core to-cyan-glow text-white shrink-0">
-                    <v.icon size={17} />
-                  </span>
-                  <div>
-                    <h4 className="type-title text-[15px] text-ink">{v.t}</h4>
-                    <p className="type-body text-[12.5px] text-slate-cool/75 mt-1">{v.d}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </Reveal>
 
-          <Reveal direction="left">
-            <Parallax distance={30}>
-              <div className="grid grid-cols-2 gap-4">
-                <ImageMask
-                  src="https://images.pexels.com/photos/29000086/pexels-photo-29000086.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=700"
-                  alt="Hotel lobby"
-                  className="rounded-[22px] overflow-hidden h-[280px] shadow-lux"
-                />
-                <ImageMask
-                  src="https://images.pexels.com/photos/14036246/pexels-photo-14036246.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=700"
-                  alt="Hotel foyer"
-                  className="rounded-[22px] overflow-hidden h-[340px] mt-8 shadow-lux"
-                />
-              </div>
-            </Parallax>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* TIMELINE */}
-      <section className="relative py-20 px-5 sm:px-8 bg-abyss overflow-hidden">
-        <AuroraBackground variant="dark" />
-        <div className="relative max-w-7xl mx-auto">
-          <SectionHead
-            eyebrow="History"
-            title="Three Decades of Practice"
-            highlight={['Practice']}
-            description="A short record of the decisions that shaped how the studio works today."
-            dark
-          />
-
-          <div className="relative">
-            <div className="absolute left-0 right-0 top-[46px] h-px bg-gradient-to-r from-transparent via-cyan-glow/40 to-transparent hidden md:block" />
-            <Stagger className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {timeline.map((t) => (
-                <StaggerItem key={t.year}>
-                  <TiltCard depth={8}>
-                    <div className="glass-dark rounded-[22px] p-6 text-white h-full relative">
-                      <span className="type-eyebrow text-cyan-glow text-[10px]">{t.year}</span>
-                      <h4 className="type-title text-lg mt-3">{t.title}</h4>
-                      <p className="type-body text-[12.5px] text-crystal/65 mt-2">{t.text}</p>
-                      <span className="absolute -top-[42px] left-6 h-2 w-2 rounded-full bg-cyan-glow shadow-[0_0_12px_rgba(34,211,238,0.9)] hidden md:block" />
-                    </div>
-                  </TiltCard>
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
-        </div>
-      </section>
-
-      {/* ATELIERS */}
-      <section className="px-5 sm:px-8 py-16">
-        <div className="max-w-7xl mx-auto">
-          <SectionHead
-            eyebrow="Our Workshops"
-            title="Three Ateliers, One Standard"
-            highlight={['Standard']}
-            description="Almost nothing is outsourced. Each commission passes through our own stone, glass and joinery workshops before it is packed."
-          />
-          <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {ateliers.map((a) => (
-              <StaggerItem key={a.name}>
-                <TiltCard depth={9}>
-                  <div className="group glass rounded-[22px] overflow-hidden h-full flex flex-col">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={a.image}
-                        alt={a.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.2s]"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-abyss/70 to-transparent" />
-                      <span className="absolute bottom-3 left-3 glass-dark px-2.5 py-1 rounded-full text-[9px] type-eyebrow text-cyan-glow">
-                        {a.place}
-                      </span>
-                    </div>
-                    <div className="p-6">
-                      <h4 className="type-title text-[17px] text-ink">{a.name}</h4>
-                      <p className="type-body text-[12.5px] text-slate-cool/75 mt-2">{a.text}</p>
-                    </div>
-                  </div>
-                </TiltCard>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </div>
-      </section>
-
-      <InViewLine className="max-w-6xl mx-auto" />
-
-      {/* CTA */}
-      <section className="px-5 sm:px-8 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <Reveal direction="scale">
-            <Sparkles size={22} className="mx-auto text-cyan-core" />
-            <h2 className="type-display mt-5 text-[28px] sm:text-[40px] text-ink">
-              <TextReveal text="We Would Be Glad to Meet You." />
-            </h2>
-            <p className="type-lead mt-5 text-[13.5px] text-slate-cool/80 measure mx-auto">
-              Each showroom holds the complete stone and textile library under adjustable lighting.
-              Appointments are private, unhurried, and carry no obligation.
+          <Reveal delay={0.2}>
+            <p className="mt-6 text-base font-normal text-slate-100 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+              Located in the quiet pine hills of Gharial Camp, Upper Topa (7,200 ft elevation). Velenburg Retreat was established as an intimate four-suite mountain haven for families and couples seeking peace, privacy, and pine valley views.
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
+          </Reveal>
+
+          <Reveal delay={0.3}>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link
-                to="/contact"
-                onClick={click}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-to-r from-teal-deep to-cyan-core text-white text-[11px] type-eyebrow shadow-lux hover:brightness-110 transition-all group"
+                to="/collections"
+                className="px-6 py-3 rounded-full bg-[#0F172A] hover:bg-slate-800 text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer border border-white/20"
               >
-                Book an Appointment
-                <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                <span>Explore the 4 Suites</span>
+                <ArrowRight size={15} strokeWidth={1.75} />
               </Link>
-              <Link
-                to="/bespoke"
-                onClick={click}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full glass text-teal-deep text-[10.5px] type-eyebrow border border-cyan-core/25 hover:bg-white transition-colors"
+
+              <a
+                href={RETREAT_CONFIG.contact.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 hover:border-[#DFBF77] text-sm font-semibold transition-all backdrop-blur-md flex items-center gap-2 cursor-pointer"
               >
-                <Compass size={13} /> Discuss a Commission
-              </Link>
+                <InstagramIcon size={14} className="text-[#DFBF77]" />
+                <span>Follow {RETREAT_CONFIG.contact.instagramHandle}</span>
+              </a>
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ================= STORY & IMAGE SPREAD ================= */}
+      <section className="py-16 md:py-24 bg-alabaster">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-6 space-y-6">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B48A3E]">
+                Gharial Camp · 7,200 Ft Elevation
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-[#0F172A] tracking-tight">
+                A Peaceful Mountain Haven Above Murree's Crowds
+              </h2>
+
+              <p className="text-base font-normal leading-relaxed text-slate-600">
+                Most travelers know Murree through the crowded noise of Mall Road. But those who know where to seek tranquility ascend to Gharial Camp — a scenic high-altitude ridge wrapped in towering Himalayan pines and fresh alpine air.
+              </p>
+
+              <p className="text-base font-normal leading-relaxed text-slate-600">
+                Here, mornings begin with the scent of mountain mist on pine needles, and afternoons invite quiet relaxation in private sunrooms. By evening, our open terrace offers an unpolluted vista of star-studded Himalayan skies.
+              </p>
+
+              <div className="pt-2">
+                <div className="p-5 rounded-2xl bg-amber-50/70 border-l-4 border-[#B48A3E] text-sm text-slate-700 leading-relaxed shadow-xs">
+                  <strong className="text-[#0F172A] block mb-1">The Velenburg Standard:</strong>
+                  Every suite is furnished with an in-room electric kettle, complimentary Tapal Green Tea sachets, and our signature black-and-gold Velenburg branded toiletries kit.
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+              <div className="rounded-2xl overflow-hidden border border-slate-200/80 shadow-md aspect-[3/4]">
+                <img
+                  src="/images/room-2/photo-1.jpg"
+                  alt="Vertical wood feature wall"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="space-y-4">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/80 shadow-md aspect-square">
+                  <img
+                    src="/images/shared/kettle-toiletries-tray.jpg"
+                    alt="In-suite kettle and toiletries kit"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <div className="rounded-2xl overflow-hidden border border-slate-200/80 shadow-md aspect-square">
+                  <img
+                    src="/images/terrace-lounge/photo-4.jpg"
+                    alt="Open stone terrace"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= 4 PILLARS TIMELINE ================= */}
+      <section className="py-16 md:py-24 bg-[#0F172A] text-alabaster border-t border-slate-700/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77]">
+              Our Guiding Principles
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-white tracking-tight mt-2">
+              The Foundations of Velenburg
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {milestones.map((m, i) => (
+              <div
+                key={i}
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#B48A3E]/60 transition-all flex flex-col justify-between h-full"
+              >
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-[#DFBF77] font-semibold">
+                    {m.year}
+                  </span>
+                  <h3 className="text-xl font-semibold leading-snug text-white mt-3">{m.title}</h3>
+                  <p className="text-sm text-slate-300 mt-3 leading-relaxed font-normal">
+                    {m.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= 4 VALUES CARDS ================= */}
+      <section className="py-16 md:py-24 bg-white border-t border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((v, i) => (
+              <div
+                key={i}
+                className="bg-alabaster rounded-2xl p-6 border border-slate-200/80 hover:border-[#B48A3E] transition-all shadow-xs flex flex-col justify-between h-full"
+              >
+                <div>
+                  <div className="h-12 w-12 rounded-xl bg-[#B48A3E]/15 border border-[#B48A3E]/30 grid place-items-center text-[#B48A3E] mb-4">
+                    <v.icon size={22} strokeWidth={1.75} />
+                  </div>
+                  <h3 className="text-xl font-semibold leading-snug text-[#0F172A]">{v.title}</h3>
+                  <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                    {v.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= CTA BANNER ================= */}
+      <section className="py-16 md:py-24 bg-[#0F172A] text-alabaster border-t border-slate-700/80">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77]">
+            Begin Your Murree Stay
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-white tracking-tight mt-2">
+            Reserve Your Stay at Velenburg
+          </h2>
+          <p className="mt-4 text-base font-normal leading-relaxed text-slate-300 max-w-xl mx-auto">
+            Each of our four suites is available at <strong className="text-white font-semibold">PKR 18,000 / Night</strong>. Message us directly on WhatsApp to confirm your preferred dates.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <MessageCircle size={16} strokeWidth={1.75} className="fill-white" />
+              <span>Connect on WhatsApp</span>
+            </a>
+
+            <Link
+              to="/contact"
+              className="px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 text-sm font-semibold transition-all cursor-pointer"
+            >
+              View Location & Directions
+            </Link>
+          </div>
         </div>
       </section>
     </PageTransition>

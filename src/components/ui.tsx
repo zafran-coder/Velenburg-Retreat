@@ -19,7 +19,7 @@ export function ScrollProgress() {
   return (
     <motion.div
       style={{ scaleX }}
-      className="fixed top-0 left-0 right-0 h-[3px] origin-left z-[60] bg-gradient-to-r from-teal-core via-cyan-core to-cyan-glow shadow-[0_0_14px_rgba(34,211,238,0.8)]"
+      className="fixed top-0 left-0 right-0 h-[3px] origin-left z-[60] bg-gradient-to-r from-gold via-gold-light to-gold shadow-[0_0_14px_rgba(197,160,89,0.8)]"
     />
   );
 }
@@ -32,29 +32,29 @@ export function AuroraBackground({ variant = 'light' }: { variant?: 'light' | 'd
       {/* animated aurora orbs */}
       <div
         className={`absolute -top-40 -left-32 w-[520px] h-[520px] rounded-full blur-[130px] animate-aurora ${
-          isDark ? 'bg-teal-core/25' : 'bg-teal-glow/25'
+          isDark ? 'bg-gold/15' : 'bg-gold/10'
         }`}
       />
       <div
         className={`absolute top-1/3 -right-40 w-[560px] h-[560px] rounded-full blur-[140px] animate-aurora ${
-          isDark ? 'bg-cyan-deep/30' : 'bg-cyan-glow/25'
+          isDark ? 'bg-charcoal/40' : 'bg-gold-light/15'
         }`}
         style={{ animationDelay: '-6s' }}
       />
       <div
         className={`absolute -bottom-52 left-1/4 w-[500px] h-[500px] rounded-full blur-[135px] animate-aurora ${
-          isDark ? 'bg-cyan-glow/15' : 'bg-crystal-light/50'
+          isDark ? 'bg-gold/10' : 'bg-amber-50/40'
         }`}
         style={{ animationDelay: '-12s' }}
       />
       {/* drifting architectural grid */}
-      <div className={`absolute inset-0 grid-lines ${isDark ? 'opacity-40' : 'opacity-70'}`} />
+      <div className={`absolute inset-0 grid-lines ${isDark ? 'opacity-30' : 'opacity-60'}`} />
       {/* soft vignette */}
       <div
         className={`absolute inset-0 ${
           isDark
-            ? 'bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(4,9,10,0.85)_100%)]'
-            : 'bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(244,254,254,0.9)_100%)]'
+            ? 'bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(15,23,42,0.85)_100%)]'
+            : 'bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(250,249,246,0.9)_100%)]'
         }`}
       />
     </div>
@@ -78,7 +78,7 @@ export function CountUp({
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-40px' });
+  const inView = useInView(ref, { once: true, margin: '0px' });
   const [value, setValue] = useState(0);
 
   useEffect(() => {
@@ -104,36 +104,15 @@ export function CountUp({
 export function MagneticButton({
   children,
   className = '',
-  strength = 12,
 }: {
   children: ReactNode;
   className?: string;
   strength?: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 220, damping: 18 });
-  const sy = useSpring(y, { stiffness: 220, damping: 18 });
-
   return (
-    <motion.div
-      ref={ref}
-      style={{ x: sx, y: sy }}
-      onMouseMove={(e) => {
-        const rect = ref.current?.getBoundingClientRect();
-        if (!rect) return;
-        x.set(((e.clientX - rect.left) / rect.width - 0.5) * strength * 2);
-        y.set(((e.clientY - rect.top) / rect.height - 0.5) * strength);
-      }}
-      onMouseLeave={() => {
-        x.set(0);
-        y.set(0);
-      }}
-      className={`inline-block ${className}`}
-    >
+    <div className={`inline-block ${className}`}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -143,7 +122,7 @@ export function Marquee({ items, dark = false }: { items: string[]; dark?: boole
   return (
     <div
       className={`relative overflow-hidden border-y ${
-        dark ? 'border-cyan-glow/15 bg-abyss' : 'border-cyan-core/15 bg-white/70'
+        dark ? 'border-gold/20 bg-charcoal' : 'border-gold/20 bg-white/70'
       } py-4`}
     >
       <div className="marquee-track flex w-max items-center gap-10 whitespace-nowrap">
@@ -151,29 +130,29 @@ export function Marquee({ items, dark = false }: { items: string[]; dark?: boole
           <span
             key={`${item}-${i}`}
             className={`flex items-center gap-10 text-[11px] type-eyebrow ${
-              dark ? 'text-crystal/70' : 'text-teal-deep/80'
+              dark ? 'text-alabaster/70' : 'text-charcoal/80'
             }`}
           >
             {item}
-            <span className={`h-1 w-1 rounded-full ${dark ? 'bg-cyan-glow' : 'bg-cyan-core'}`} />
+            <span className={`h-1 w-1 rounded-full ${dark ? 'bg-gold-light' : 'bg-gold'}`} />
           </span>
         ))}
       </div>
       <div
         className={`pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r ${
-          dark ? 'from-abyss to-transparent' : 'from-white to-transparent'
+          dark ? 'from-charcoal to-transparent' : 'from-white to-transparent'
         }`}
       />
       <div
         className={`pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l ${
-          dark ? 'from-abyss to-transparent' : 'from-white to-transparent'
+          dark ? 'from-charcoal to-transparent' : 'from-white to-transparent'
         }`}
       />
     </div>
   );
 }
 
-/* ================= SECTION HEADING (consistent typography) ================= */
+/* ================= SECTION HEADING (Strict Standardized Typography) ================= */
 export function SectionHead({
   eyebrow,
   title,
@@ -191,22 +170,17 @@ export function SectionHead({
 }) {
   const centered = align === 'center';
   return (
-    <div className={`${centered ? 'text-center mx-auto max-w-3xl' : 'max-w-2xl'} mb-14`}>
+    <div className={`${centered ? 'text-center mx-auto max-w-3xl' : 'max-w-2xl'} mb-12 md:mb-16`}>
       <Reveal direction="down">
-        <span
-          className={`inline-flex items-center gap-2.5 type-eyebrow text-[9.5px] ${
-            dark ? 'text-cyan-glow' : 'text-teal-deep'
-          }`}
-        >
-          <span className={`h-1 w-1 rounded-full ${dark ? 'bg-cyan-glow' : 'bg-cyan-core'}`} />
+        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#B48A3E]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#B48A3E]" />
           {eyebrow}
         </span>
-        <div className={`rule-accent w-16 mt-3 ${centered ? 'mx-auto' : ''}`} />
       </Reveal>
 
       <h2
-        className={`type-display mt-5 text-[27px] sm:text-4xl md:text-[44px] ${
-          dark ? 'text-white' : 'text-ink'
+        className={`mt-3 text-3xl md:text-4xl font-bold leading-[1.2] tracking-tight ${
+          dark ? 'text-white' : 'text-[#0F172A]'
         }`}
       >
         <TextRevealInline text={title} highlight={highlight} dark={dark} />
@@ -215,8 +189,8 @@ export function SectionHead({
       {description && (
         <Reveal delay={0.15}>
           <p
-            className={`type-lead mt-5 text-[13.5px] md:text-[15px] ${centered ? 'mx-auto' : ''} measure-wide ${
-              dark ? 'text-crystal/70' : 'text-slate-cool/80'
+            className={`mt-4 text-base font-normal leading-relaxed ${centered ? 'mx-auto' : ''} max-w-2xl ${
+              dark ? 'text-slate-300' : 'text-slate-600'
             }`}
           >
             {description}
@@ -242,17 +216,11 @@ function TextRevealInline({
         const clean = word.replace(/[.,]/g, '');
         const isHi = highlight.includes(clean);
         return (
-          <span key={`${word}-${i}`} className="inline-block overflow-hidden align-bottom">
-            <motion.span
-              initial={{ y: '108%', opacity: 0 }}
-              whileInView={{ y: '0%', opacity: 1 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.75, delay: i * 0.05, ease: EASE }}
-              className={`inline-block ${isHi ? (dark ? 'text-gradient-light' : 'text-gradient') : ''}`}
-            >
-              {word}
-            </motion.span>
-            <span className="inline-block">&nbsp;</span>
+          <span
+            key={`${word}-${i}`}
+            className={`inline ${isHi ? (dark ? 'text-gradient-light' : 'text-gradient') : ''}`}
+          >
+            {word}{' '}
           </span>
         );
       })}

@@ -1,80 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
-import { Menu, X, Volume2, VolumeX, ArrowRight, ArrowUpRight, Gem, Clock } from 'lucide-react';
+import { Menu, X, Volume2, VolumeX, ArrowRight, MessageCircle, BedDouble, Trees, Mountain } from 'lucide-react';
 import { luxuryAudio } from '../utils/audio';
+import { RETREAT_CONFIG } from '../data/retreatConfig';
+import { ROOMS_DATA } from '../data/roomsData';
+import { navItems } from '../data/navigation';
+import TopWeatherBar from './TopWeatherBar';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-
-type Panel = {
-  heading: string;
-  blurb: string;
-  links: { label: string; to: string; note: string }[];
-  image: string;
-  caption: string;
-};
-
-export const navItems: {
-  name: string;
-  path: string;
-  panel?: Panel;
-}[] = [
-  { name: 'Home', path: '/' },
-  {
-    name: 'Collections',
-    path: '/collections',
-    panel: {
-      heading: 'The 2026 Collection',
-      blurb:
-        'Seating, tables, beds and lighting specified to hospitality standard, then finished for private residences.',
-      links: [
-        { label: 'Living & Lounge', to: '/collections?category=living', note: 'Sectionals, Swivel Chairs & Credenzas' },
-        { label: 'Dining', to: '/collections?category=dining', note: 'Monolithic Tables & Dining Chairs' },
-        { label: 'Bedroom', to: '/collections?category=sleep', note: 'Platform Beds & Headboard Walls' },
-        { label: 'Lighting', to: '/collections?category=lighting', note: 'Chandeliers, Sconces & Linear Profiles' },
-      ],
-      image:
-        'https://images.pexels.com/photos/20285351/pexels-photo-20285351.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-      caption: 'Eight Signature Pieces · Finishes Available to Sample',
-    },
-  },
-  {
-    name: 'Virtual Tour',
-    path: '/virtual-tour',
-    panel: {
-      heading: 'Walk Through Completed Projects',
-      blurb:
-        'Three fully staged interiors you can explore in the browser, with adjustable lighting for every hour of the day.',
-      links: [
-        { label: 'Marina Atrium', to: '/virtual-tour', note: 'Dubai · 620 m² Reception Hall' },
-        { label: 'Lagoon Villa', to: '/virtual-tour', note: 'Maldives · 410 m² Water Suite' },
-        { label: 'Clifftop Estate', to: '/virtual-tour', note: 'Bali · 540 m² Terraced Residence' },
-      ],
-      image:
-        'https://images.pexels.com/photos/29000086/pexels-photo-29000086.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-      caption: 'Runs In-Browser · No Download Required',
-    },
-  },
-  {
-    name: 'Bespoke',
-    path: '/bespoke',
-    panel: {
-      heading: 'Commissions & Specification',
-      blurb:
-        'Custom scale, rare stone and made-to-measure joinery, delivered with a fixed quotation and a physical sample box.',
-      links: [
-        { label: 'Start a Commission', to: '/bespoke', note: 'Configure Project Type & Materials' },
-        { label: 'Material Library', to: '/bespoke', note: 'Stone, Timber & Textile References' },
-        { label: 'Trade & Specification', to: '/contact', note: 'For Architects & Procurement Teams' },
-      ],
-      image:
-        'https://images.pexels.com/photos/14011664/pexels-photo-14011664.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-      caption: 'Sample Box Dispatched Within 48 Hours',
-    },
-  },
-  { name: 'Studio', path: '/about' },
-  { name: 'Contact', path: '/contact' },
-];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -83,35 +17,31 @@ export default function Navbar() {
   const [muted, setMuted] = useState(true);
   const [hovered, setHovered] = useState<string | null>(null);
   const [panelFor, setPanelFor] = useState<string | null>(null);
-  const [clock, setClock] = useState('');
   const closeTimer = useRef<number | null>(null);
   const { pathname } = useLocation();
   const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, 'change', (y) => {
     const prev = scrollY.getPrevious() ?? 0;
-    setScrolled(y > 24);
-    setHidden(y > prev && y > 260 && !panelFor && !open);
+    setScrolled(y > 20);
+    setHidden(y > prev && y > 240 && !panelFor && !open);
   });
-
-  useEffect(() => {
-    const tick = () =>
-      setClock(
-        new Intl.DateTimeFormat('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'Asia/Dubai',
-        }).format(new Date())
-      );
-    tick();
-    const id = setInterval(tick, 20000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     setPanelFor(null);
     setOpen(false);
   }, [pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [open]);
 
   const openPanel = (name: string, has: boolean) => {
     if (closeTimer.current) window.clearTimeout(closeTimer.current);
@@ -130,114 +60,91 @@ export default function Navbar() {
   const chime = () => luxuryAudio.playChime(620, 0.09);
   const activePanel = navItems.find((i) => i.name === panelFor)?.panel;
 
+  const whatsappDirectUrl = `https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}?text=Assalam-o-Alaikum%20Velenburg%20Retreat!%20I%20would%20like%20to%20reserve%20a%20luxury%20suite%20at%20Gharial%20Camp,%20Murree%20(PKR%2018,000%20/%20Night).`;
+
   return (
     <>
       <motion.header
         initial={{ y: -90, opacity: 0 }}
-        animate={{ y: hidden ? -130 : 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: EASE }}
+        animate={{ y: hidden ? -140 : 0, opacity: 1 }}
+        transition={{ duration: 0.45, ease: EASE }}
         className="fixed top-0 inset-x-0 z-50 pointer-events-none"
         onMouseLeave={scheduleClose}
       >
-        {/* ============ TIER 1 · UTILITY RAIL (collapses on scroll) ============ */}
-        <AnimatePresence initial={false}>
+        {/* Top Live Mountain Weather & Contact Bar (hides smoothly on scroll) */}
+        <AnimatePresence>
           {!scrolled && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 36, opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.45, ease: EASE }}
-              className="pointer-events-auto overflow-hidden bg-ink text-crystal/75"
+              initial={{ y: 0, opacity: 1, height: 'auto' }}
+              animate={{ y: 0, opacity: 1, height: 'auto' }}
+              exit={{ y: -40, opacity: 0, height: 0 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="pointer-events-auto"
             >
-              <div className="max-w-7xl mx-auto h-9 px-5 sm:px-8 flex items-center justify-between text-[10.5px]">
-                <span className="type-eyebrow text-[9.5px] text-cyan-glow/90 hidden sm:block">
-                  Est. 1994 · Hospitality &amp; Residential Interiors
-                </span>
-                <div className="flex items-center gap-5">
-                  <span className="hidden md:flex items-center gap-1.5">
-                    <Clock size={11} className="text-teal-glow" />
-                    Dubai {clock} · Showroom Open
-                  </span>
-                  <span className="hidden lg:block text-crystal/45">Dubai · Doha · Paris · Bali</span>
-                  <Link to="/contact" className="hover:text-white transition-colors underline-offset-4 hover:underline">
-                    Trade Enquiries
-                  </Link>
-                </div>
-              </div>
+              <TopWeatherBar />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ============ TIER 2 · PRIMARY ANIMATED CONTAINER ============ */}
-        <div className="px-3 sm:px-5 pt-3">
+        {/* Floating Luxury Pill Navbar (never cut off, perfectly positioned) */}
+        <div className={`px-2.5 sm:px-6 pointer-events-none transition-all duration-300 ${scrolled ? 'pt-2.5 sm:pt-3.5' : 'pt-2 sm:pt-2.5'}`}>
           <motion.div
             layout
-            transition={{ duration: 0.5, ease: EASE }}
-            className={`nav-shell inner-light pointer-events-auto relative mx-auto flex items-center justify-between gap-4 overflow-hidden transition-all duration-500 ${
+            transition={{ duration: 0.4, ease: EASE }}
+            className={`nav-shell inner-light pointer-events-auto relative mx-auto flex items-center justify-between gap-2 sm:gap-4 overflow-hidden transition-all duration-500 ${
               scrolled
-                ? 'max-w-6xl rounded-full py-2 pl-5 pr-2 glass-strong shadow-lux'
-                : 'max-w-7xl rounded-full py-2.5 pl-6 pr-2.5 glass shadow-[0_18px_50px_-30px_rgba(8,74,87,0.5)]'
+                ? 'max-w-6xl rounded-full py-2 pl-3.5 sm:pl-5 pr-2 glass-strong shadow-card'
+                : 'max-w-7xl rounded-full py-2 sm:py-2.5 pl-4 sm:pl-6 pr-2 sm:pr-2.5 glass shadow-sm'
             }`}
           >
-            {/* travelling light sweep */}
-            <motion.span
-              aria-hidden
-              className="absolute inset-y-0 w-1/3 pointer-events-none"
-              animate={{ x: ['-120%', '320%'] }}
-              transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2.5 }}
-              style={{
-                background:
-                  'linear-gradient(100deg, transparent, rgba(34,211,238,0.14) 45%, rgba(255,255,255,0.25) 55%, transparent)',
-              }}
-            />
-
-            {/* LOGO */}
-            <Link to="/" onClick={chime} className="relative z-10 flex items-center gap-2.5 shrink-0 group">
+            {/* LOGO: Velenburg Retreat */}
+            <Link to="/" onClick={chime} className="relative z-10 flex items-center gap-2 sm:gap-3 shrink-0 group">
               <motion.span
-                whileHover={{ rotate: 90, scale: 1.06 }}
-                transition={{ duration: 0.6, ease: EASE }}
-                className="grid place-items-center h-8 w-8 rounded-[10px] bg-gradient-to-br from-teal-deep via-cyan-core to-cyan-glow shadow-[0_8px_20px_-8px_rgba(6,182,212,0.95)]"
+                whileHover={{ rotate: 12, scale: 1.05 }}
+                transition={{ duration: 0.4, ease: EASE }}
+                className="grid place-items-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-br from-charcoal via-slate-800 to-charcoal border border-gold/40 shadow-sm"
               >
-                <Gem size={14} className="text-white" />
+                <Mountain size={14} className="text-gold-light sm:hidden" />
+                <Mountain size={16} className="text-gold-light hidden sm:block" />
               </motion.span>
               <span className="flex flex-col leading-none">
-                <span className="text-[16px] font-medium tracking-[0.3em] text-ink group-hover:text-teal-deep transition-colors">
-                  AURA
+                <span className="text-[13px] sm:text-[15px] font-bold tracking-[0.16em] sm:tracking-[0.2em] text-charcoal group-hover:text-gold-dark transition-colors">
+                  VELENBURG
                 </span>
-                <span className="type-eyebrow text-[7.5px] text-slate-cool/45 mt-1 tracking-[0.28em] hidden sm:block">
-                  Interiors
+                <span className="type-eyebrow text-[6.5px] sm:text-[7.5px] text-slate-500 mt-0.5 tracking-[0.22em] sm:tracking-[0.25em]">
+                  RETREAT · MURREE
                 </span>
               </span>
             </Link>
 
             {/* DESKTOP NAV */}
-            <nav className="relative z-10 hidden lg:flex items-center gap-0.5">
+            <nav className="relative z-10 hidden lg:flex items-center gap-1">
               {navItems.map((item) => {
-                const isActive =
-                  item.path === '/' ? pathname === '/' : pathname.startsWith(item.path);
+                const isActive = item.path === '/' ? pathname === '/' : pathname.startsWith(item.path);
                 const isHover = hovered === item.name;
+
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
                     onClick={chime}
                     onMouseEnter={() => openPanel(item.name, Boolean(item.panel))}
-                    className={`relative px-3.5 py-2 rounded-full text-[11.5px] type-label transition-colors duration-300 ${
-                      isActive ? 'text-white' : isHover ? 'text-teal-deep' : 'text-slate-cool/85'
+                    className={`relative px-4 py-2 rounded-full text-xs font-medium tracking-wide transition-colors duration-300 ${
+                      isActive ? 'text-white' : isHover ? 'text-gold-dark' : 'text-charcoal/80'
                     }`}
                   >
                     {isHover && !isActive && (
                       <motion.span
                         layoutId="navHoverPill"
-                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                        className="absolute inset-0 rounded-full bg-cyan-core/10 border border-cyan-core/15"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        className="absolute inset-0 rounded-full bg-gold/10 border border-gold/25"
                       />
                     )}
                     {isActive && (
                       <motion.span
                         layoutId="navActivePill"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-deep via-cyan-deep to-cyan-core shadow-[0_10px_24px_-12px_rgba(6,182,212,0.95)]"
+                        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                        className="absolute inset-0 rounded-full bg-charcoal text-white shadow-md border border-gold/40"
                       />
                     )}
                     <span className="relative flex items-center gap-1.5">
@@ -245,10 +152,8 @@ export default function Navbar() {
                       {item.panel && (
                         <motion.span
                           animate={{ rotate: panelFor === item.name ? 180 : 0 }}
-                          transition={{ duration: 0.35, ease: EASE }}
-                          className={`block h-[3px] w-[3px] rounded-full ${
-                            isActive ? 'bg-white/80' : 'bg-cyan-core/70'
-                          }`}
+                          transition={{ duration: 0.3, ease: EASE }}
+                          className={`block h-1 w-1 rounded-full ${isActive ? 'bg-gold-light' : 'bg-gold'}`}
                         />
                       )}
                     </span>
@@ -258,31 +163,37 @@ export default function Navbar() {
             </nav>
 
             {/* ACTIONS */}
-            <div className="relative z-10 flex items-center gap-2 shrink-0">
+            <div className="relative z-10 flex items-center gap-2.5 shrink-0">
+              {/* Sound chime button */}
               <button
                 onClick={() => setMuted(luxuryAudio.toggleMute())}
-                aria-label="Toggle ambient sound"
-                className="h-9 w-9 grid place-items-center rounded-full border border-cyan-core/20 bg-white/70 text-slate-cool hover:text-teal-deep hover:border-cyan-core/55 hover:scale-105 active:scale-95 transition-all"
+                aria-label="Toggle mountain sound"
+                className="h-9 w-9 grid place-items-center rounded-full border border-gold/30 bg-white/80 text-charcoal hover:text-gold-dark hover:border-gold hover:scale-105 active:scale-95 transition-all shadow-sm"
               >
-                {muted ? <VolumeX size={14} /> : <Volume2 size={14} className="text-cyan-core" />}
+                {muted ? <VolumeX size={14} /> : <Volume2 size={14} className="text-gold-dark" />}
               </button>
 
-              <Link
-                to="/contact"
+              {/* Book via WhatsApp Button */}
+              <a
+                href={whatsappDirectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={chime}
-                className="relative hidden sm:inline-flex items-center gap-2 overflow-hidden rounded-full px-5 py-2.5 text-[10.5px] type-eyebrow text-white bg-ink hover:bg-teal-deep transition-colors group shimmer"
+                className="relative hidden sm:inline-flex items-center gap-2 overflow-hidden rounded-full px-5 py-2.5 text-[10px] uppercase tracking-wider font-bold text-white bg-charcoal hover:bg-gold-dark transition-all border border-gold/40 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 group cursor-pointer"
               >
-                <span className="relative z-10">Book an Appointment</span>
+                <MessageCircle size={13} className="fill-[#25D366] text-[#25D366]" />
+                <span className="relative z-10">Book via WhatsApp</span>
                 <ArrowRight size={12} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </a>
 
+              {/* Mobile Menu Button */}
               <button
                 onClick={() => {
                   luxuryAudio.playChime(520, 0.09);
                   setOpen((o) => !o);
                 }}
                 aria-label="Open menu"
-                className="lg:hidden h-9 w-9 grid place-items-center rounded-full border border-cyan-core/25 bg-white/75 text-ink"
+                className="lg:hidden h-9 w-9 grid place-items-center rounded-full border border-gold/30 bg-white/85 text-charcoal"
               >
                 {open ? <X size={17} /> : <Menu size={17} />}
               </button>
@@ -290,90 +201,77 @@ export default function Navbar() {
           </motion.div>
         </div>
 
-        {/* ============ TIER 3 · ANIMATED MEGA PANEL ============ */}
+        {/* MEGA PANEL DROPDOWN */}
         <AnimatePresence>
           {activePanel && (
             <motion.div
-              initial={{ opacity: 0, y: -14, scale: 0.985, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(6px)' }}
-              transition={{ duration: 0.42, ease: EASE }}
+              initial={{ opacity: 0, y: -12, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.99 }}
+              transition={{ duration: 0.35, ease: EASE }}
               onMouseEnter={() => {
                 if (closeTimer.current) window.clearTimeout(closeTimer.current);
               }}
               onMouseLeave={scheduleClose}
-              className="pointer-events-auto px-3 sm:px-5 pt-2.5 hidden lg:block"
+              className="pointer-events-auto px-3 sm:px-6 pt-2 hidden lg:block"
             >
-              <div className="inner-light relative mx-auto max-w-6xl rounded-[26px] glass-strong shadow-lux overflow-hidden">
-                <div className="absolute -top-24 right-24 w-80 h-80 rounded-full bg-cyan-glow/20 blur-[100px] pointer-events-none animate-aurora" />
-
+              <div className="inner-light relative mx-auto max-w-6xl rounded-3xl glass-strong shadow-2xl border border-gold/30 overflow-hidden">
                 <div className="relative grid grid-cols-12 gap-8 p-7">
-                  {/* copy column */}
-                  <div className="col-span-4 pr-6 border-r border-cyan-core/12">
-                    <span className="type-eyebrow text-[9.5px] text-teal-deep">Overview</span>
-                    {/* section intro */}
-                    <div className="rule-accent w-14 mt-2.5 mb-4" />
-                    <h3 className="type-title text-[19px] text-ink">{activePanel.heading}</h3>
-                    <p className="type-body text-[12.5px] text-slate-cool/75 mt-3">{activePanel.blurb}</p>
+                  {/* Left Column */}
+                  <div className="col-span-4 pr-6 border-r border-gold/20">
+                    <span className="type-eyebrow text-[9.5px] text-gold-dark">Velenburg Retreat</span>
+                    <h3 className="type-title text-xl text-charcoal mt-2">{activePanel.heading}</h3>
+                    <p className="type-body text-xs text-slate-600 mt-2.5 leading-relaxed">
+                      {activePanel.blurb}
+                    </p>
+                    <div className="mt-5 p-3 rounded-xl bg-alabaster border border-gold/25 text-[11px] text-slate-700">
+                      <span className="font-semibold text-charcoal block mb-0.5">Note on Meals:</span>
+                      Self-use kitchen & electric kettle provided in rooms. No hotel catering or cooked dinner service.
+                    </div>
                   </div>
 
-                  {/* links column */}
-                  <div className="col-span-5 space-y-1">
+                  {/* Middle Column: Links */}
+                  <div className="col-span-5 space-y-1.5">
                     {activePanel.links.map((l, i) => (
-                      <motion.div
+                      <Link
                         key={l.label}
-                        initial={{ opacity: 0, x: -14 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.06 + i * 0.055, duration: 0.45, ease: EASE }}
+                        to={l.to}
+                        onClick={chime}
+                        className="group flex items-center justify-between gap-4 rounded-xl px-4 py-3 hover:bg-gold/10 transition-colors"
                       >
-                        <Link
-                          to={l.to}
-                          onClick={chime}
-                          className="group flex items-center justify-between gap-4 rounded-2xl px-4 py-3 hover:bg-white transition-colors"
-                        >
-                          <span>
-                            <span className="block text-[13.5px] type-label text-ink group-hover:text-teal-deep transition-colors">
-                              {l.label}
-                            </span>
-                            <span className="block text-[11px] text-slate-cool/60 mt-0.5">{l.note}</span>
+                        <div>
+                          <span className="block text-sm font-semibold text-charcoal group-hover:text-gold-dark transition-colors">
+                            {l.label}
                           </span>
-                          <ArrowUpRight
-                            size={15}
-                            className="text-cyan-core opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0"
-                          />
-                        </Link>
-                      </motion.div>
+                          <span className="block text-xs text-slate-500 mt-0.5">{l.note}</span>
+                        </div>
+                        <ArrowRight size={14} className="text-gold opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shrink-0" />
+                      </Link>
                     ))}
                   </div>
 
-                  {/* image column */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 1.04 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.6, ease: EASE }}
-                    className="col-span-3 relative rounded-2xl overflow-hidden min-h-[180px]"
-                  >
+                  {/* Right Column: Image Preview */}
+                  <div className="col-span-3 relative rounded-2xl overflow-hidden min-h-[190px] border border-gold/20">
                     <img src={activePanel.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-abyss/90 via-abyss/10 to-transparent" />
-                    <span className="absolute bottom-3 inset-x-3 text-[10.5px] text-crystal/85 leading-snug">
+                    <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-transparent to-transparent" />
+                    <span className="absolute bottom-3 inset-x-3 text-[11px] text-alabaster/90 leading-snug">
                       {activePanel.caption}
                     </span>
-                  </motion.div>
+                  </div>
                 </div>
 
-                {/* footer strip */}
-                <div className="relative border-t border-cyan-core/12 bg-white/45 px-7 py-3 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-cool/65">
-                    Every piece is available to view in person before you commit.
-                  </span>
-                  <Link
-                    to="/contact"
-                    onClick={chime}
-                    className="inline-flex items-center gap-1.5 type-eyebrow text-[9.5px] text-teal-deep hover:text-cyan-deep transition-colors group"
+                {/* Bottom Bar */}
+                <div className="border-t border-gold/20 bg-alabaster/70 px-7 py-3 flex items-center justify-between text-xs text-slate-600">
+                  <span>Uniform rate across all 4 luxury suites: <strong>PKR 18,000 / Night</strong></span>
+                  <a
+                    href={whatsappDirectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 font-semibold text-gold-dark hover:text-charcoal transition-colors"
                   >
-                    Arrange a Viewing
-                    <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                    Direct WhatsApp: {RETREAT_CONFIG.contact.displayPhone}
+                    <ArrowRight size={13} />
+                  </a>
                 </div>
               </div>
             </motion.div>
@@ -381,75 +279,104 @@ export default function Navbar() {
         </AnimatePresence>
       </motion.header>
 
-      {/* ============ MOBILE MENU ============ */}
+      {/* MOBILE MENU FULL-SCREEN DRAWER */}
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0, clipPath: 'circle(0% at 92% 5%)' }}
             animate={{ opacity: 1, clipPath: 'circle(145% at 92% 5%)' }}
             exit={{ opacity: 0, clipPath: 'circle(0% at 92% 5%)' }}
-            transition={{ duration: 0.65, ease: EASE }}
-            className="fixed inset-0 z-40 lg:hidden bg-frost/97 backdrop-blur-2xl px-6 pt-28 pb-10 flex flex-col overflow-y-auto"
+            transition={{ duration: 0.4, ease: EASE }}
+            className="fixed inset-0 z-[60] lg:hidden bg-[#FAF9F6]/98 backdrop-blur-3xl px-5 sm:px-6 pt-5 pb-8 flex flex-col justify-between overflow-y-auto"
           >
-            <span className="type-eyebrow text-[9.5px] text-teal-deep">Menu</span>
-            <div className="rule-accent w-16 mt-2.5 mb-5" />
+            {/* Top Bar with Brand & Direct Close Button */}
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-gold/20">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid place-items-center h-8 w-8 rounded-xl bg-charcoal border border-gold/40 shadow-xs">
+                    <Mountain size={14} className="text-gold-light" />
+                  </span>
+                  <div>
+                    <span className="block text-sm font-bold tracking-[0.18em] text-charcoal">VELENBURG</span>
+                    <span className="block text-[8px] uppercase tracking-[0.25em] text-slate-500">Gharial Camp, Murree</span>
+                  </div>
+                </div>
 
-            <div className="flex-1 space-y-1">
-              {navItems.map((item, i) => {
-                const isActive = item.path === '/' ? pathname === '/' : pathname.startsWith(item.path);
-                return (
-                  <motion.div
+                <button
+                  type="button"
+                  onClick={() => {
+                    luxuryAudio.playChime(500, 0.08);
+                    setOpen(false);
+                  }}
+                  aria-label="Close menu"
+                  className="h-10 w-10 rounded-full bg-charcoal/5 hover:bg-gold/20 text-charcoal flex items-center justify-center transition-colors cursor-pointer border border-charcoal/10"
+                >
+                  <X size={19} />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="space-y-1 mt-3">
+                {navItems.map((item) => (
+                  <Link
                     key={item.path}
-                    initial={{ opacity: 0, x: -22 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.06, duration: 0.55, ease: EASE }}
+                    to={item.path}
+                    onClick={() => {
+                      chime();
+                      setOpen(false);
+                    }}
+                    className="flex items-center justify-between py-3 px-3 rounded-2xl hover:bg-gold/10 transition-colors border-b border-charcoal/5 group"
                   >
-                    <Link
-                      to={item.path}
-                      onClick={chime}
-                      className="flex items-center justify-between py-3.5 border-b border-cyan-core/12"
-                    >
-                      <span>
-                        <span
-                          className={`block text-[22px] type-sub ${
-                            isActive ? 'text-gradient' : 'text-ink'
-                          }`}
-                        >
-                          {item.name}
-                        </span>
-                        {item.panel && (
-                          <span className="block text-[11px] text-slate-cool/55 mt-0.5">
-                            {item.panel.heading}
-                          </span>
-                        )}
-                      </span>
-                      <ArrowRight size={17} className="text-cyan-core shrink-0" />
-                    </Link>
-                  </motion.div>
-                );
-              })}
+                    <span className="text-base sm:text-lg font-semibold text-charcoal group-hover:text-gold-dark transition-colors">
+                      {item.name}
+                    </span>
+                    <ArrowRight size={16} className="text-gold group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, ease: EASE }}
-              className="pt-8 space-y-4"
-            >
-              <div className="flex items-center justify-between text-[10.5px] text-slate-cool/65">
-                <span className="flex items-center gap-1.5">
-                  <Clock size={11} className="text-teal-core" /> Dubai {clock}
+            {/* Bottom Actions & Policy */}
+            <div className="pt-6 border-t border-gold/20 space-y-3 mt-6">
+              <div className="p-3.5 rounded-2xl bg-white border border-gold/25 shadow-xs text-xs text-slate-600 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-charcoal">4 Uniform Luxury Suites</span>
+                  <span className="text-gold-dark font-bold">PKR 18,000 / Night</span>
+                </div>
+                <span className="block text-[11px] text-slate-500">
+                  Check-in: {RETREAT_CONFIG.timings.checkIn} | Check-out: {RETREAT_CONFIG.timings.checkOut}
                 </span>
-                <span>Dubai · Doha · Paris · Bali</span>
               </div>
-              <Link
-                to="/contact"
-                onClick={chime}
-                className="block text-center py-3.5 rounded-full bg-gradient-to-r from-teal-deep to-cyan-core text-white text-[10.5px] type-eyebrow shadow-lux"
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <a
+                  href={`tel:${RETREAT_CONFIG.contact.displayPhone.replace(/\s+/g, '')}`}
+                  className="flex items-center justify-center gap-2 py-3 rounded-full border border-charcoal/20 bg-white text-charcoal font-semibold text-xs tracking-wider uppercase shadow-xs hover:bg-gold/10 transition-colors"
+                >
+                  <span>Call Host</span>
+                </a>
+
+                <a
+                  href={RETREAT_CONFIG.contact.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 rounded-full border border-gold/30 bg-white text-gold-dark font-semibold text-xs tracking-wider uppercase shadow-xs hover:bg-gold/10 transition-colors"
+                >
+                  <span>@velenburg</span>
+                </a>
+              </div>
+
+              <a
+                href={whatsappDirectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
               >
-                Book an Appointment
-              </Link>
-            </motion.div>
+                <MessageCircle size={16} className="fill-white" />
+                <span>Book via WhatsApp ({RETREAT_CONFIG.contact.displayPhone})</span>
+              </a>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

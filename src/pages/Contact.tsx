@@ -1,382 +1,543 @@
-import { useEffect, useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Calendar, Check, ArrowRight, Sparkles, Gem } from 'lucide-react';
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Calendar,
+  Check,
+  Sparkles,
+  MessageCircle,
+  Users,
+  Compass,
+  Navigation,
+  ExternalLink,
+  Info,
+  Car,
+  Star
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
-import PageTransition, { Reveal, Stagger, StaggerItem } from '../components/Transitions';
-import TiltCard from '../components/Interactive3DCard';
-import { AuroraBackground, SectionHead, MagneticButton } from '../components/ui';
+import PageTransition, { Reveal } from '../components/Transitions';
+import { InstagramIcon } from '../components/InstagramIcon';
+import { RETREAT_CONFIG, formatPKR } from '../data/retreatConfig';
+import { ROOMS_DATA } from '../data/roomsData';
 import { luxuryAudio } from '../utils/audio';
-
-const EASE = [0.16, 1, 0.3, 1] as const;
-
-const salons = [
-  {
-    city: 'Dubai',
-    name: 'Marina Atrium Salon',
-    address: 'Sheikh Zayed Road, Dubai, UAE',
-    phone: '+971 4 552 8890',
-    hours: 'Daily 10:00 – 23:00',
-    tz: 'Asia/Dubai',
-    image: 'https://images.pexels.com/photos/29000086/pexels-photo-29000086.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-  },
-  {
-    city: 'Doha',
-    name: 'West Bay Crystal Hall',
-    address: 'West Bay Lagoon, Doha, Qatar',
-    phone: '+974 4429 7712',
-    hours: 'Daily 10:00 – 22:00',
-    tz: 'Asia/Qatar',
-    image: 'https://images.pexels.com/photos/14011664/pexels-photo-14011664.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-  },
-  {
-    city: 'Paris',
-    name: 'Vendôme Atelier',
-    address: '14 Place Vendôme, 75001 Paris',
-    phone: '+33 1 42 68 55 10',
-    hours: 'Mon – Sat 10:00 – 19:30',
-    tz: 'Europe/Paris',
-    image: 'https://images.pexels.com/photos/3926482/pexels-photo-3926482.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-  },
-  {
-    city: 'Bali',
-    name: 'Uluwatu Clifftop Villa',
-    address: 'Jl. Labuansait, Uluwatu, Bali',
-    phone: '+62 361 847 2210',
-    hours: 'Daily 09:00 – 21:00',
-    tz: 'Asia/Makassar',
-    image: 'https://images.pexels.com/photos/35113998/pexels-photo-35113998.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=600&w=800',
-  },
-];
-
-const slots = [
-  'Morning · 10:30 – 12:00',
-  'Midday · 13:00 – 14:30',
-  'Afternoon · 15:30 – 17:00',
-  'Evening · 18:00 – 19:30',
-];
-
-const refreshments = [
-  'Champagne',
-  'Japanese green tea',
-  'Espresso',
-  'Still or sparkling water',
-];
+import AvailabilityCalendar from '../components/AvailabilityCalendar';
+import { isRangeBlocked, recordBookingInquiry, subscribeToAvailability } from '../utils/availability';
 
 export default function Contact() {
-  const [salon, setSalon] = useState(salons[0].city);
-  const [slot, setSlot] = useState(slots[2]);
-  const [drink, setDrink] = useState(refreshments[0]);
-  const [done, setDone] = useState(false);
-  const [times, setTimes] = useState<Record<string, string>>({});
+  // Booking Calculator State
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [selectedRoomId, setSelectedRoomId] = useState(ROOMS_DATA[0].id);
+  const [availTick, setAvailTick] = useState(0);
 
   useEffect(() => {
-    const tick = () => {
-      const t: Record<string, string> = {};
-      salons.forEach((s) => {
-        t[s.city] = new Intl.DateTimeFormat('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: s.tz,
-        }).format(new Date());
-      });
-      setTimes(t);
-    };
-    tick();
-    const id = setInterval(tick, 15000);
-    return () => clearInterval(id);
+    return subscribeToAvailability(() => setAvailTick((t) => t + 1));
   }, []);
+  const [checkIn, setCheckIn] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
+  const [checkOut, setCheckOut] = useState(() => {
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 3);
+    return dayAfter.toISOString().split('T')[0];
+  });
+  const [guests, setGuests] = useState(2);
+  const [specialNote, setSpecialNote] = useState('');
+  const [dispatched, setDispatched] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  // Calculation
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 1;
+    const start = new Date(checkIn).getTime();
+    const end = new Date(checkOut).getTime();
+    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 1;
+  }, [checkIn, checkOut]);
+
+  const selectedRoom = useMemo(() => {
+    return ROOMS_DATA.find((r) => r.id === selectedRoomId) || ROOMS_DATA[0];
+  }, [selectedRoomId]);
+
+  const isBlocked = useMemo(() => {
+    return isRangeBlocked(selectedRoom.id, checkIn, checkOut);
+  }, [selectedRoom.id, checkIn, checkOut, availTick]);
+
+  const totalPrice = nights * RETREAT_CONFIG.rates.roomRatePKR;
+
+  const handleDispatchWhatsApp = (e: React.FormEvent) => {
     e.preventDefault();
-    luxuryAudio.playChime(790, 0.24);
-    setDone(true);
+
+    if (isBlocked) {
+      alert('The selected stay dates overlap an existing Airbnb/Booking.com reservation. Please select available dates.');
+      setShowCalendar(true);
+      return;
+    }
+
+    const bookingRef = `VLN-${Date.now().toString(36).toUpperCase()}`;
+
+    // Automatically record booking inquiry in Supabase database
+    recordBookingInquiry({
+      bookingRef,
+      roomId: selectedRoom.id,
+      guestName: guestName.trim() || 'Valued Guest',
+      guestPhone: guestPhone.trim() || 'WhatsApp Contact',
+      guestsCount: guests,
+      checkIn,
+      checkOut,
+      nights,
+      totalPricePkr: totalPrice,
+      notes: specialNote.trim(),
+    }).catch(() => {});
+
+    luxuryAudio.playSuccessChime();
+
     try {
       confetti({
-        particleCount: 90,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#0F766E', '#06B6D4', '#22D3EE', '#A5F0F6', '#F4FEFE'],
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#C5A059', '#FAF9F6', '#25D366'],
       });
-    } catch {
-      /* noop */
-    }
-  };
+    } catch (_) {}
 
-  const activeSalon = salons.find((s) => s.city === salon)!;
+    const message = [
+      `Assalam-o-Alaikum Velenburg Retreat! 🌲`,
+      ``,
+      `I would like to reserve a stay at Gharial Camp, Murree:`,
+      `• Guest Name: ${guestName || 'Valued Guest'}`,
+      `• Contact Number: ${guestPhone || 'Provided in WhatsApp'}`,
+      `• Selected Suite: ${selectedRoom.name} ("${selectedRoom.officialTagline}")`,
+      `• Check-in Date: ${checkIn} (${RETREAT_CONFIG.policies.checkInTime})`,
+      `• Check-out Date: ${checkOut} (${RETREAT_CONFIG.policies.checkOutTime})`,
+      `• Duration: ${nights} Night${nights > 1 ? 's' : ''}`,
+      `• Guests: ${guests} Guest${guests > 1 ? 's' : ''}`,
+      `• Rate per Night: PKR ${RETREAT_CONFIG.rates.roomRatePKR.toLocaleString()}`,
+      `• Total Estimate: PKR ${totalPrice.toLocaleString()}`,
+      specialNote ? `• Note / Request: ${specialNote}` : '',
+      ``,
+      `Please confirm suite availability and share reservation advance details. Thank you!`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const url = `https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}?text=${encodeURIComponent(
+      message
+    )}`;
+
+    setDispatched(true);
+    setTimeout(() => {
+      window.open(url, '_blank');
+    }, 400);
+  };
 
   return (
     <PageTransition>
-      {/* HEADER */}
-      <section className="relative pt-32 pb-8 overflow-hidden">
-        <AuroraBackground />
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
-          <SectionHead
-            eyebrow="Appointments"
-            title="Book a Private Showroom Viewing"
-            highlight={['Private']}
-            description="We host one client at a time. Choose a location and a time that suits you, and your consultant will prepare the relevant samples in advance."
+      {/* ================= HERO WITH REAL ESTATE OUTLOOK ================= */}
+      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 bg-[#0F172A] text-alabaster border-b border-slate-700/80 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <img
+            src="/images/velenburg-exterior.jpg"
+            alt="Velenburg Retreat Murree Real Exterior Outlook"
+            className="w-full h-full object-cover object-center filter brightness-100 contrast-[1.02]"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/45" />
         </div>
-      </section>
 
-      {/* SALON SELECTOR */}
-      <section className="px-5 sm:px-8 pb-10">
-        <div className="max-w-7xl mx-auto">
-          <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {salons.map((s) => {
-              const isActive = salon === s.city;
-              return (
-                <StaggerItem key={s.city}>
-                  <TiltCard depth={8}>
-                    <div
-                      onClick={() => {
-                        luxuryAudio.playChime(640, 0.08);
-                        setSalon(s.city);
-                      }}
-                      className={`cursor-pointer rounded-[22px] overflow-hidden glass h-full flex flex-col transition-all duration-500 ${
-                        isActive ? 'ring-2 ring-cyan-core shadow-lux' : 'border-cyan-core/15 hover:shadow-lux'
-                      }`}
-                    >
-                      <div className="relative h-40 overflow-hidden">
-                        <img src={s.image} alt={s.city} loading="lazy" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-abyss/80 to-transparent" />
-                        <span className="absolute top-3 right-3 glass-dark px-2.5 py-1 rounded-full text-[9px] text-white flex items-center gap-1.5">
-                          <Clock size={10} className="text-cyan-glow" /> {times[s.city] || '--:--'}
-                        </span>
-                        {isActive && (
-                          <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-cyan-glow text-ink text-[9px] type-eyebrow">
-                            Selected
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                          <h3 className="type-title text-[16px] text-ink">{s.name}</h3>
-                          <p className="type-body text-[11.5px] text-slate-cool/70 mt-1">{s.address}</p>
-                        </div>
-                        <div className="mt-4 pt-3 border-t border-cyan-core/12 space-y-1.5 text-[11px] text-slate-cool/80">
-                          <span className="flex items-center gap-2">
-                            <Phone size={11} className="text-cyan-core" /> {s.phone}
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <Clock size={11} className="text-teal-core" /> {s.hours}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </TiltCard>
-                </StaggerItem>
-              );
-            })}
-          </Stagger>
-        </div>
-      </section>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Reveal>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-[#DFBF77] text-xs font-semibold tracking-[0.2em] uppercase mb-6 shadow-md">
+              <Compass size={14} strokeWidth={1.75} className="text-[#B48A3E]" />
+              <span>Gharial Camp, Murree · 7,200 Ft Elevation</span>
+            </div>
+          </Reveal>
 
-      {/* FORM */}
-      <section className="px-5 sm:px-8 py-10">
-        <div className="max-w-4xl mx-auto">
-          <Reveal direction="scale">
-            <div className="relative overflow-hidden rounded-[28px] glass-strong shadow-lux p-6 sm:p-10">
-              <div className="absolute -top-28 -left-24 w-96 h-96 rounded-full bg-teal-glow/25 blur-[110px] animate-aurora" />
+          <Reveal delay={0.1}>
+            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-[1.1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.7)]">
+              Location & <br />
+              <span className="text-[#DFBF77]">Direct Reservations</span>
+            </h1>
+          </Reveal>
 
-              <div className="relative flex items-center gap-3 mb-2">
-                <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-teal-core to-cyan-glow text-white">
-                  <Gem size={17} />
-                </span>
-                <div>
-                  <h3 className="type-title text-[19px] text-ink">Appointment Request</h3>
-                  <p className="text-[11.5px] text-slate-cool/70 mt-0.5">
-                    <strong className="text-teal-deep type-label">{activeSalon.name}</strong> ·{' '}
-                    {activeSalon.hours}
-                  </p>
-                </div>
-              </div>
+          <Reveal delay={0.2}>
+            <p className="mt-6 text-base font-normal text-slate-100 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+              Connect directly with our retreat hosts. Check availability, calculate your stay total at our uniform rate of <strong className="text-white font-semibold">PKR 18,000 / Night</strong>, and secure your dates via WhatsApp.
+            </p>
+          </Reveal>
 
-              <form onSubmit={submit} className="relative mt-8 space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { label: 'Full Name', type: 'text', ph: 'Alexandra Sterling' },
-                    { label: 'Email Address', type: 'email', ph: 'you@residence.com' },
-                  ].map((f) => (
-                    <div key={f.label} className="space-y-1.5">
-                      <label className="type-eyebrow text-[10px] text-teal-deep block">{f.label}</label>
-                      <input
-                        required
-                        type={f.type}
-                        placeholder={f.ph}
-                        className="w-full bg-white rounded-xl border border-cyan-core/15 px-4 py-3.5 text-[12.5px] text-ink placeholder:text-slate-cool/40 focus:outline-none focus:border-cyan-core/70 focus:shadow-[0_0_0_4px_rgba(34,211,238,0.12)] transition-all"
-                      />
-                    </div>
-                  ))}
-                </div>
+          <Reveal delay={0.3}>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href={`tel:${RETREAT_CONFIG.contact.rawPhone}`}
+                className="px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 text-sm font-semibold transition-all backdrop-blur-md flex items-center gap-2 cursor-pointer"
+              >
+                <Phone size={15} strokeWidth={1.75} className="text-[#DFBF77]" />
+                <span>Call Host: {RETREAT_CONFIG.contact.displayPhone}</span>
+              </a>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="type-eyebrow text-[10px] text-teal-deep block flex items-center gap-1.5">
-                      <Calendar size={12} className="text-cyan-core" /> Preferred Date
-                    </label>
-                    <input
-                      required
-                      type="date"
-                      defaultValue="2026-04-18"
-                      className="w-full bg-white rounded-xl border border-cyan-core/15 px-4 py-3.5 text-[12.5px] text-ink focus:outline-none focus:border-cyan-core/70 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="type-eyebrow text-[10px] text-teal-deep block">Telephone Number</label>
-                    <input
-                      type="tel"
-                      placeholder="+971 50 000 0000"
-                      className="w-full bg-white rounded-xl border border-cyan-core/15 px-4 py-3.5 text-[12.5px] text-ink placeholder:text-slate-cool/40 focus:outline-none focus:border-cyan-core/70 transition-all"
-                    />
-                  </div>
-                </div>
+              <a
+                href={`https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <MessageCircle size={16} strokeWidth={1.75} className="fill-white" />
+                <span>WhatsApp: {RETREAT_CONFIG.contact.displayPhone}</span>
+              </a>
 
-                {/* slots */}
-                <div>
-                  <span className="type-eyebrow text-[10px] text-teal-deep block mb-3">Preferred Time</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {slots.map((s) => {
-                      const isActive = slot === s;
-                      return (
-                        <motion.button
-                          type="button"
-                          key={s}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            luxuryAudio.playChime(640, 0.07);
-                            setSlot(s);
-                          }}
-                          className={`text-left px-4 py-3 rounded-2xl border text-[12.5px] font-medium transition-all duration-300 ${
-                            isActive
-                              ? 'bg-gradient-to-r from-teal-deep to-cyan-core text-white border-transparent shadow-[0_12px_26px_-14px_rgba(6,182,212,0.9)]'
-                              : 'bg-white/70 text-slate-cool border-cyan-core/15 hover:bg-white hover:border-cyan-core/45'
-                          }`}
-                        >
-                          {s}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* refreshments */}
-                <div>
-                  <span className="type-eyebrow text-[10px] text-teal-deep block mb-3">Refreshment on Arrival</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {refreshments.map((r) => {
-                      const isActive = drink === r;
-                      return (
-                        <button
-                          type="button"
-                          key={r}
-                          onClick={() => {
-                            luxuryAudio.playChime(700, 0.06);
-                            setDrink(r);
-                          }}
-                          className={`px-3 py-3 rounded-2xl border text-[11.5px] font-medium transition-all duration-300 ${
-                            isActive
-                              ? 'bg-white border-cyan-core/70 text-ink shadow-[0_10px_22px_-16px_rgba(6,182,212,0.9)]'
-                              : 'bg-white/60 border-cyan-core/12 text-slate-cool hover:bg-white'
-                          }`}
-                        >
-                          ✦ {r}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="type-eyebrow text-[10px] text-teal-deep block">
-                    Anything We Should Prepare
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Specific pieces, drawings you would like reviewed, or finishes you want to compare"
-                    className="w-full bg-white rounded-xl border border-cyan-core/15 px-4 py-3.5 text-[12.5px] text-ink placeholder:text-slate-cool/40 focus:outline-none focus:border-cyan-core/70 transition-all resize-none"
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-cyan-core/12 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <span className="text-[11.5px] text-slate-cool/70">
-                    You will receive written confirmation within two working hours.
-                  </span>
-                  <MagneticButton>
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-teal-deep via-cyan-deep to-cyan-core text-white text-[11px] type-eyebrow shadow-lux hover:brightness-110 transition-all group"
-                    >
-                      Confirm reservation
-                      <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </MagneticButton>
-                </div>
-
-                <AnimatePresence>
-                  {done && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 14, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.5, ease: EASE }}
-                      className="p-5 rounded-2xl bg-teal-core/10 border border-teal-core/25"
-                    >
-                      <div className="flex items-center gap-2 text-teal-deep type-label text-[13.5px]">
-                        <Check size={17} /> Request received
-                      </div>
-                      <p className="type-body text-[12.5px] text-slate-cool mt-2">
-                        Thank you. Your appointment at the <strong>{activeSalon.name}</strong> is
-                        provisionally held for the <strong>{slot.toLowerCase()}</strong> slot, with{' '}
-                        <strong>{drink.toLowerCase()}</strong> on arrival. A consultant will confirm
-                        by email shortly.
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </form>
+              <a
+                href={RETREAT_CONFIG.contact.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 text-sm font-semibold transition-all backdrop-blur-md flex items-center gap-2 cursor-pointer"
+              >
+                <InstagramIcon size={14} className="text-[#DFBF77]" />
+                <span>{RETREAT_CONFIG.contact.instagramHandle}</span>
+              </a>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* DIRECT CONTACTS */}
-      <section className="px-5 sm:px-8 pb-16">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
-          {[
-            {
-              icon: MapPin,
-              t: 'General Enquiries',
-              a: 'studio@aura-interiors.com',
-              b: 'Replies within two working hours',
-            },
-            {
-              icon: Mail,
-              t: 'Trade & Specification',
-              a: 'projects@aura-interiors.com',
-              b: 'For architects and procurement teams',
-            },
-            {
-              icon: Sparkles,
-              t: 'Delivery & Installation',
-              a: 'logistics@aura-interiors.com',
-              b: 'Insured freight and on-site assembly',
-            },
-          ].map((c) => (
-            <Reveal key={c.t} direction="up">
-              <TiltCard depth={8}>
-                <div className="glass rounded-[22px] p-6 h-full flex items-start gap-4">
-                  <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-teal-core to-cyan-glow text-white shrink-0">
-                    <c.icon size={16} />
-                  </span>
+      {/* ================= MAIN INTERACTIVE CALCULATOR & LOCATION ================= */}
+      <section className="py-16 md:py-24 bg-alabaster">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Left 7 Cols: Interactive Stay Calculator */}
+            <div className="lg:col-span-7">
+              <div className="bg-white rounded-2xl p-6 sm:p-8 md:p-10 border border-slate-200/80 shadow-md">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-6 mb-8">
                   <div>
-                    <h4 className="type-title text-[15px] text-ink">{c.t}</h4>
-                    <p className="text-[12px] text-slate-cool/80 mt-1">{c.a}</p>
-                    <p className="text-[11.5px] text-slate-cool/60">{c.b}</p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B48A3E]">
+                      Direct WhatsApp Reservation Engine
+                    </span>
+                    <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-[#0F172A] tracking-tight mt-1">
+                      Calculate & Reserve Your Stay
+                    </h2>
+                  </div>
+                  <div className="hidden sm:block text-right">
+                    <span className="text-xs text-slate-500 font-medium block">Fixed Rate</span>
+                    <div className="text-base font-bold text-[#0F172A]">
+                      PKR 18,000 / Night
+                    </div>
                   </div>
                 </div>
-              </TiltCard>
-            </Reveal>
-          ))}
+
+                <form onSubmit={handleDispatchWhatsApp} className="space-y-6">
+                  {/* Guest Name & Phone */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2">
+                        Your Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder="e.g. Zeeshan Khan"
+                        className="w-full px-4 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold transition-colors bg-alabaster/40"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2">
+                        WhatsApp Contact Number
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        placeholder="e.g. 0300-1234567"
+                        className="w-full px-4 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold transition-colors bg-alabaster/40"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Suite Selector */}
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2">
+                      Choose Your Luxury Suite
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {ROOMS_DATA.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            luxuryAudio.playChime(600, 0.05);
+                            setSelectedRoomId(r.id);
+                          }}
+                          className={`p-3.5 rounded-xl border text-left transition-all flex items-start justify-between ${
+                            selectedRoomId === r.id
+                              ? 'border-gold bg-gold/10 shadow-sm'
+                              : 'border-charcoal/15 bg-white hover:border-charcoal/30'
+                          }`}
+                        >
+                          <div>
+                            <div className="font-semibold text-xs text-charcoal">{r.name}</div>
+                            <div className="text-[11px] text-charcoal/60 italic mt-0.5">
+                              "{r.officialTagline}"
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-mono text-gold font-bold">
+                            PKR 18,000
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Calendar Toggle */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wider text-charcoal/70 font-semibold flex items-center gap-1.5">
+                      <Calendar size={13} className="text-gold" />
+                      <span>Stay Dates</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar(!showCalendar)}
+                      className="text-xs text-gold font-medium hover:underline flex items-center gap-1"
+                    >
+                      {showCalendar ? 'Hide Live Calendar' : 'View Airbnb/Booking.com Synced Calendar'}
+                    </button>
+                  </div>
+
+                  {showCalendar && (
+                    <div className="my-2">
+                      <AvailabilityCalendar
+                        roomId={selectedRoom.id}
+                        checkIn={checkIn}
+                        checkOut={checkOut}
+                        onSelectDates={(inDate, outDate) => {
+                          setCheckIn(inDate);
+                          if (outDate) setCheckOut(outDate);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Check-in, Check-out & Guests */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2 flex items-center gap-1.5">
+                        <Calendar size={13} className="text-gold" />
+                        <span>Check-In Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={checkIn}
+                        onClick={(e) => {
+                          try {
+                            e.currentTarget.showPicker?.();
+                          } catch (_) {}
+                        }}
+                        onChange={(e) => setCheckIn(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold bg-alabaster/40 cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2 flex items-center gap-1.5">
+                        <Calendar size={13} className="text-gold" />
+                        <span>Check-Out Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={checkOut}
+                        min={checkIn}
+                        onClick={(e) => {
+                          try {
+                            e.currentTarget.showPicker?.();
+                          } catch (_) {}
+                        }}
+                        onChange={(e) => setCheckOut(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold bg-alabaster/40 cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2 flex items-center gap-1.5">
+                        <Users size={13} className="text-gold" />
+                        <span>Total Guests</span>
+                      </label>
+                      <select
+                        value={guests}
+                        onChange={(e) => setGuests(Number(e.target.value))}
+                        className="w-full px-3.5 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold bg-alabaster/40"
+                      >
+                        <option value={1}>1 Guest</option>
+                        <option value={2}>2 Guests (Recommended)</option>
+                        <option value={3}>3 Guests (Family with child)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Special Note / Inquiries */}
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-charcoal/70 font-semibold mb-2">
+                      Special Requests or Arrival Notes (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={specialNote}
+                      onChange={(e) => setSpecialNote(e.target.value)}
+                      placeholder="e.g. Expected arrival time around 4:00 PM, traveling from Islamabad..."
+                      className="w-full px-4 py-3 rounded-xl border border-charcoal/20 text-xs text-charcoal focus:outline-none focus:border-gold bg-alabaster/40"
+                    />
+                  </div>
+
+                  {/* Summary & Price Display */}
+                  <div className="p-6 rounded-2xl bg-[#0F172A] text-alabaster border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-xs uppercase tracking-wider text-[#DFBF77] font-semibold">
+                        Stay Calculation ({nights} Night{nights > 1 ? 's' : ''})
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <span className="text-2xl font-bold text-white">
+                          PKR {totalPrice.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          (PKR 18,000 / Night × {nights} nights)
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Includes: King suite, in-room kettle with Tapal Green Tea, Velenburg toiletries kit, heated blankets, and mountain terrace access.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="px-6 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+                    >
+                      <MessageCircle size={16} strokeWidth={1.75} className="fill-white" />
+                      <span>Confirm via WhatsApp</span>
+                    </button>
+                  </div>
+                </form>
+
+                {dispatched && (
+                  <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                    <Check size={16} strokeWidth={1.75} className="text-emerald-600 flex-shrink-0" />
+                    <span>WhatsApp opened with your pre-filled reservation details! Host will respond promptly.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Location, Driving Directions & Host Information */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Retreat Address Card */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#B48A3E]">
+                  Retreat Coordinates
+                </span>
+                <h3 className="text-xl font-semibold leading-snug text-[#0F172A] mt-1">
+                  Velenburg Retreat
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Gharial Camp, Murree Tehsil, Rawalpindi District, Punjab, Pakistan
+                </p>
+
+                <div className="mt-6 space-y-4 pt-4 border-t border-slate-100 text-xs sm:text-sm text-slate-700">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={16} strokeWidth={1.75} className="text-[#B48A3E] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Elevation & Setting:</strong> 7,200 ft (2,195 m) above sea level in the tranquil Gharial pine ridge.
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Sparkles size={16} strokeWidth={1.75} className="text-[#B48A3E] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Official Google Rating:</strong> <br />
+                      <a
+                        href={RETREAT_CONFIG.contact.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-amber-600 font-bold hover:underline mt-0.5"
+                      >
+                        <Star size={14} className="fill-amber-500 text-amber-500 shrink-0" />
+                        <span>4.9 Stars (27 Google Reviews)</span>
+                        <ExternalLink size={12} strokeWidth={1.75} className="text-slate-400" />
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Clock size={16} strokeWidth={1.75} className="text-[#B48A3E] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Check-in: 2:00 PM | Check-out: 12:00 PM</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Phone size={16} strokeWidth={1.75} className="text-[#B48A3E] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Direct Phone & WhatsApp:</strong> <br />
+                      <a href={`tel:${RETREAT_CONFIG.contact.rawPhone}`} className="text-[#0F172A] font-semibold hover:text-[#B48A3E]">
+                        {RETREAT_CONFIG.contact.displayPhone}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Driving Directions */}
+              <div className="bg-[#0F172A] text-alabaster rounded-2xl p-6 sm:p-8 border border-slate-700/80 shadow-md">
+                <div className="flex items-center gap-2 text-[#DFBF77] mb-3">
+                  <Car size={18} strokeWidth={1.75} />
+                  <span className="text-xs uppercase tracking-widest font-semibold">
+                    Driving Directions
+                  </span>
+                </div>
+                <h4 className="text-xl font-semibold leading-snug text-white">
+                  From Islamabad / Rawalpindi
+                </h4>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed font-normal">
+                  Approx. <strong>1 hour 15 minutes</strong> (62 km) drive:
+                </p>
+
+                <ol className="mt-4 space-y-3 text-xs sm:text-sm text-slate-300 list-decimal list-inside font-normal">
+                  <li>Take the <strong>Islamabad–Murree Expressway (N-75)</strong> to Lower Topa.</li>
+                  <li>Follow the scenic Upper Topa bypass towards <strong>Gharial Camp</strong>.</li>
+                  <li>Gharial Camp offers serene pine-shaded roads without Mall Road congestion.</li>
+                  <li>Ample safe private parking is available on-site for guest vehicles.</li>
+                </ol>
+
+                <div className="mt-6 pt-4 border-t border-white/10">
+                  <a
+                    href={RETREAT_CONFIG.contact.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs text-[#DFBF77] hover:underline font-semibold"
+                  >
+                    <Navigation size={14} strokeWidth={1.75} />
+                    <span>Open Official Velenburg Listing on Google Maps</span>
+                    <ExternalLink size={12} strokeWidth={1.75} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Strict Policy Note */}
+              <div className="bg-amber-50/70 border border-[#B48A3E]/30 rounded-2xl p-6 text-xs sm:text-sm text-slate-700 leading-relaxed shadow-xs">
+                <div className="flex items-center gap-2 text-[#B48A3E] font-semibold mb-2">
+                  <Info size={16} strokeWidth={1.75} />
+                  <span>Transparent Guest Policy</span>
+                </div>
+                <p>
+                  To maintain an undisturbed alpine sanctuary, Velenburg operates with a strict no-dinner restaurant policy. In-room electric kettle with complimentary Tapal Green Tea sachets and a shared self-use kitchen space are available.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </PageTransition>

@@ -1,219 +1,179 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Boxes, Layers, Play, Star } from 'lucide-react';
-import PageTransition, {
-  Reveal,
-  Stagger,
-  StaggerItem,
-  ImageMask,
-  InViewLine,
-  TextReveal,
-} from '../components/Transitions';
-import HotelShowcase3D from '../components/HotelShowcase3D';
-import HotspotScene from '../components/HotspotScene';
+import { ArrowRight, BedDouble, Coffee, Mountain, Sparkles, MessageCircle, MapPin, Trees, CheckCircle2, Calendar, ArrowDown } from 'lucide-react';
+import PageTransition, { Reveal, Stagger, StaggerItem, TextReveal } from '../components/Transitions';
 import TiltCard from '../components/Interactive3DCard';
-import {
-  AuroraBackground,
-  Marquee,
-  CountUp,
-  MagneticButton,
-  SectionHead,
-  Parallax,
-} from '../components/ui';
+import HeroBookingBar from '../components/HeroBookingBar';
+import RoomCard from '../components/RoomCard';
+import AnnotatedSuitePin from '../components/AnnotatedSuitePin';
+import InstagramHighlights from '../components/InstagramHighlights';
+import WhatsAppBookingModal from '../components/WhatsAppBookingModal';
+import RoomDetailModal from '../components/RoomDetailModal';
+import TravelerGuide from '../components/TravelerGuide';
+import { AuroraBackground, SectionHead, MagneticButton, CountUp } from '../components/ui';
+import { ROOMS_DATA, RoomSuite, TERRACE_LOUNGE_IMAGES } from '../data/roomsData';
+import { RETREAT_CONFIG } from '../data/retreatConfig';
 import { luxuryAudio } from '../utils/audio';
 
 const click = () => luxuryAudio.playChime(640, 0.09);
 
-const collections = [
-  {
-    title: 'Living & Lounge',
-    sub: 'Seating, Credenzas & Occasional Tables',
-    tag: '18 Pieces',
-    image:
-      'https://images.pexels.com/photos/14011664/pexels-photo-14011664.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1200',
-    link: '/collections?category=living',
-  },
-  {
-    title: 'Bedroom',
-    sub: 'Platform Beds & Headboard Walls',
-    tag: '9 Pieces',
-    image:
-      'https://images.pexels.com/photos/6585757/pexels-photo-6585757.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1200',
-    link: '/collections?category=sleep',
-  },
-  {
-    title: 'Outdoor & Terrace',
-    sub: 'Weather-Rated Seating & Stone',
-    tag: '11 Pieces',
-    image:
-      'https://images.pexels.com/photos/35113998/pexels-photo-35113998.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1200',
-    link: '/virtual-tour',
-  },
-  {
-    title: 'Dining',
-    sub: 'Monolithic Tables & Dining Chairs',
-    tag: '12 Pieces',
-    image:
-      'https://images.pexels.com/photos/14598479/pexels-photo-14598479.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1200',
-    link: '/collections?category=dining',
-  },
-];
-
-const materials = [
-  {
-    name: 'Backlit Onyx',
-    origin: 'Quarried in Iran',
-    hex: '#A5F0F6',
-    note: 'Translucent panels laminated to glass for illuminated walls and reception fronts.',
-  },
-  {
-    name: 'Verde Alpi Marble',
-    origin: "Valle d'Aosta, Italy",
-    hex: '#0F766E',
-    note: 'A deep green serpentinite with white veining, honed to a low-sheen finish.',
-  },
-  {
-    name: 'Murano Crystal',
-    origin: 'Venice, Italy',
-    hex: '#06B6D4',
-    note: 'Hand-blown fluted cylinders, tinted in-house and tested for optical clarity.',
-  },
-  {
-    name: 'Volcanic Basalt',
-    origin: 'Southern Iceland',
-    hex: '#0C1F1E',
-    note: 'Dense, non-porous stone cut on a diamond wire for seamless monolithic tops.',
-  },
-];
-
-const process = [
-  {
-    step: 'Consultation',
-    text: 'We review your drawings, site conditions and budget, then agree a specification and a fixed programme.',
-  },
-  {
-    step: 'Specification',
-    text: 'You receive a 3D preview of the room, a physical sample box and a written schedule of finishes.',
-  },
-  {
-    step: 'Fabrication',
-    text: 'Work begins across our stone, glass and joinery ateliers, with photographic progress reports each fortnight.',
-  },
-  {
-    step: 'Installation',
-    text: 'Our own team handles freight, assembly and final adjustment on site, anywhere in the world.',
-  },
-];
-
-const stats = [
-  { value: 42, suffix: '', label: 'Hospitality Projects Completed' },
-  { value: 19, suffix: '', label: 'Countries Delivered To' },
-  { value: 32, suffix: '', label: 'Years in Practice' },
-  { value: 10, suffix: '', label: 'Year Structural Warranty' },
+const retreatHighlights = [
+  { value: 4, suffix: ' Suites', label: 'Uniform Luxury Mountain Suites' },
+  { value: 18000, suffix: ' PKR', label: 'Fixed Price Per Night (All Suites)' },
+  { value: 7200, suffix: ' ft', label: 'Elevation at Gharial Camp' },
+  { value: 100, suffix: '%', label: 'Pine Forest & Valley Views' },
 ];
 
 export default function Home() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<RoomSuite | null>(null);
+  const [detailRoom, setDetailRoom] = useState<RoomSuite | null>(null);
+
+  const handleOpenBooking = (room?: RoomSuite) => {
+    setSelectedRoom(room || null);
+    setModalOpen(true);
+  };
+
+  const handleOpenDetails = (room: RoomSuite) => {
+    luxuryAudio.playChime(660, 0.08);
+    setDetailRoom(room);
+  };
+
+  const scrollToBooking = () => {
+    luxuryAudio.playChime(640, 0.09);
+    const bookingEl = document.getElementById('hero-booking-bar');
+    if (bookingEl) {
+      bookingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      handleOpenBooking();
+    }
+  };
+
+  const whatsappDirectUrl = `https://wa.me/${RETREAT_CONFIG.contact.ownerWhatsApp}?text=Assalam-o-Alaikum%20Velenburg%20Retreat!%20🌲%0A%0AI%20would%20like%20to%20inquire%20about%20suite%20availability%20at%20Gharial%20Camp,%20Murree%20(PKR%2018,000%20/%20Night).`;
+
   return (
     <PageTransition>
-      {/* ══════════ HERO ══════════ */}
-      <section className="relative pt-36 sm:pt-40 pb-10 overflow-hidden">
-        <AuroraBackground />
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
-          <div className="text-center max-w-4xl mx-auto">
+      {/* ══════════ HERO SECTION WITH REAL ESTATE OUTLOOK ══════════ */}
+      <section className="relative pt-32 sm:pt-40 pb-24 sm:pb-32 overflow-hidden bg-charcoal text-alabaster min-h-[92vh] flex items-center">
+        {/* Real Exterior Outlook Background with Bright Natural Sunlight */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/velenburg-exterior.jpg"
+            alt="Velenburg Retreat Murree Real Exterior Outlook"
+            className="w-full h-full object-cover object-center filter brightness-100 contrast-[1.02]"
+          />
+          {/* Gentle, light scrim: subtle top navbar shade, crystal clear midground for the villa, gentle bottom taper */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/45" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          {/* Editorial Floating Hero Panel - Crystal clear frosted glass */}
+          <div className="text-center max-w-4xl mx-auto backdrop-blur-md bg-black/25 border border-white/20 rounded-2xl p-6 sm:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+            {/* Top Location & Bio Badge with Google Maps Rating */}
             <Reveal direction="down">
-              <span className="type-eyebrow text-[9.5px] text-teal-deep inline-flex items-center gap-2.5">
-                <span className="h-1 w-1 rounded-full bg-cyan-core" />
-                Furniture &amp; Interiors · Established 1994
-              </span>
-              {/* eyebrow rule */}
-              <div className="rule-accent w-16 mt-3 mx-auto" />
+              <a
+                href={RETREAT_CONFIG.contact.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View Velenburg Retreat on Google Maps (4.9 Rating from 27 Reviews)"
+                className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md border border-white/20 shadow-md text-white text-xs font-semibold uppercase tracking-[0.2em] transition-all cursor-pointer group"
+              >
+                <span className="flex items-center gap-1.5 text-[#DFBF77]">
+                  <MapPin size={14} strokeWidth={1.75} className="group-hover:scale-110 transition-transform" />
+                  <span>{RETREAT_CONFIG.locationBadge}</span>
+                </span>
+                <span className="text-white/40">•</span>
+                <span className="text-amber-300 font-bold flex items-center gap-1 normal-case tracking-normal">
+                  <span>★ 4.9</span>
+                  <span className="text-white/80 font-normal text-xs">(27 Google Reviews)</span>
+                </span>
+              </a>
             </Reveal>
 
-            <h1 className="type-display mt-7 text-[2.35rem] leading-[1.06] sm:text-[3.4rem] md:text-[4.1rem] text-ink">
-              <TextReveal text="Interiors Made to the Standard of" />{' '}
-              <span className="inline-block overflow-hidden align-bottom">
-                <motion.span
-                  initial={{ y: '110%' }}
-                  animate={{ y: '0%' }}
-                  transition={{ duration: 0.9, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                  className="inline-block text-gradient"
-                >
-                  The World&rsquo;s Finest Hotels.
-                </motion.span>
-              </span>
+            {/* Main Headline (Strict h1 Typography Standard) */}
+            <h1 className="mt-5 sm:mt-7 text-4xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
+              Peaceful Mountain Luxury in <br className="hidden sm:inline" />
+              <span className="text-[#DFBF77]">The Heart of Murree.</span>
             </h1>
 
-            <Reveal delay={0.6} direction="blur">
-              <p className="type-lead mt-7 text-[14px] sm:text-[16px] text-slate-cool/80 measure-wide mx-auto">
-                For three decades we have furnished landmark hotels and private residences in
-                nineteen countries. Every piece we make can be inspected in our online showroom,
-                sampled in your hand, and seen in person before you commit.
+            {/* Subtext with Strict 16px Body Copy Standard & Natural Hospitality Language */}
+            <Reveal delay={0.3} direction="blur">
+              <p className="mt-4 sm:mt-6 text-base font-normal text-slate-100 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+                Located in the quiet pine hills of Gharial Camp, Upper Topa (7,200 ft elevation). Enjoy <strong>4 private luxury suites</strong> at <strong>PKR 18,000 / Night</strong> with private sunrooms, in-room electric kettle, Tapal Green Tea, branded toiletries, and panoramic valley views.
               </p>
             </Reveal>
 
-            <Reveal delay={0.72}>
-              <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-                <MagneticButton>
-                  <Link
-                    to="/virtual-tour"
-                    onClick={click}
-                    className="relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full text-white bg-ink hover:bg-teal-deep transition-colors text-[10.5px] type-eyebrow shimmer overflow-hidden shadow-lux group"
+            {/* Hero Quick Action Buttons (Strict Standard Buttons) */}
+            <Reveal delay={0.45}>
+              <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5">
+                <MagneticButton className="w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={scrollToBooking}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md hover:shadow-lg cursor-pointer"
                   >
-                    <Play size={13} className="text-cyan-glow group-hover:scale-125 transition-transform" />
-                    View the Showroom
-                  </Link>
+                    <Calendar size={16} strokeWidth={1.75} className="text-white shrink-0" />
+                    <span>Select Dates & Book on WhatsApp</span>
+                    <ArrowDown size={15} strokeWidth={1.75} className="shrink-0" />
+                  </button>
                 </MagneticButton>
 
-                <MagneticButton>
+                <MagneticButton className="w-full sm:w-auto">
                   <Link
                     to="/collections"
                     onClick={click}
-                    className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full glass text-teal-deep hover:bg-white transition-colors text-[10.5px] type-eyebrow border border-cyan-core/25 group"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 hover:border-[#DFBF77] text-sm font-semibold transition-all backdrop-blur-md cursor-pointer"
                   >
-                    Browse the Collection
-                    <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                    <span>Explore 4 Luxury Suites</span>
+                    <ArrowRight size={15} strokeWidth={1.75} className="shrink-0" />
                   </Link>
                 </MagneticButton>
               </div>
             </Reveal>
 
-            <Reveal delay={0.85}>
-              <p className="mt-6 text-[11px] text-slate-cool/55">
-                No account required · Sample boxes dispatched within 48 hours
-              </p>
+            {/* Trust Policy Strip */}
+            <Reveal delay={0.6}>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-medium text-white">
+                <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
+                  <CheckCircle2 size={16} strokeWidth={1.75} className="text-emerald-400 shrink-0" /> PKR 18,000 / Night
+                </span>
+                <span className="hidden xs:inline text-white/30">•</span>
+                <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
+                  <CheckCircle2 size={16} strokeWidth={1.75} className="text-emerald-400 shrink-0" /> In-Room Kettle & Toiletries Kit
+                </span>
+                <span className="hidden xs:inline text-white/30">•</span>
+                <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
+                  <CheckCircle2 size={16} strokeWidth={1.75} className="text-emerald-400 shrink-0" /> Direct WhatsApp Booking (+92 315 5167829)
+                </span>
+              </div>
             </Reveal>
           </div>
 
-          <Reveal delay={0.25} direction="scale" className="mt-10">
-            <HotelShowcase3D />
-          </Reveal>
+          {/* QUICK AVAILABILITY SEARCH BAR */}
+          <div id="hero-booking-bar" className="mt-12">
+            <HeroBookingBar onSuiteSelect={(id) => {
+              const r = ROOMS_DATA.find((x) => x.id === id);
+              if (r) setSelectedRoom(r);
+            }} />
+          </div>
         </div>
       </section>
 
-      <Marquee
-        items={[
-          'HOSPITALITY-GRADE CONSTRUCTION',
-          'QUARRY-TRACED STONE',
-          'IN-HOUSE GLASS ATELIER',
-          'TEN-YEAR STRUCTURAL WARRANTY',
-          'WORLDWIDE INSTALLATION',
-        ]}
-      />
-
-      {/* ══════════ CREDENTIALS ══════════ */}
-      <section className="relative py-16 px-5 sm:px-8">
-        <div className="max-w-6xl mx-auto">
-          <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((s) => (
+      {/* ══════════ RETREAT STATS / HIGHLIGHTS BAR ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-alabaster">
+        <div className="max-w-7xl mx-auto">
+          <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {retreatHighlights.map((s) => (
               <StaggerItem key={s.label}>
-                <TiltCard depth={7}>
-                  <div className="glass rounded-[22px] p-6 h-full text-center">
+                <TiltCard depth={6}>
+                  <div className="rounded-2xl border border-slate-200/80 bg-white p-6 h-full text-center shadow-xs hover:border-[#B48A3E] transition-colors flex flex-col justify-between">
                     <CountUp
                       to={s.value}
                       suffix={s.suffix}
-                      className="block type-num text-[2.1rem] sm:text-[2.5rem] text-gradient"
+                      className="block text-3xl md:text-4xl font-bold text-[#0F172A]"
                     />
-                    <span className="block mt-2 text-[11.5px] text-slate-cool/70 leading-snug">
+                    <span className="block mt-2 text-xs text-slate-600 font-medium">
                       {s.label}
                     </span>
                   </div>
@@ -224,259 +184,263 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ ANNOTATED ROOM ══════════ */}
-      <section className="relative py-16 px-5 sm:px-8">
+      {/* ══════════ THE 4 LUXURY SUITES SHOWCASE GRID ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white border-y border-slate-200/80">
         <div className="max-w-7xl mx-auto">
           <SectionHead
-            eyebrow="Annotated Interior"
-            title="Every Element, Fully Documented"
-            highlight={['Documented']}
-            description="Select a marker to read the material specification, dimensions and price of each piece in this composed suite."
-          />
-          <Reveal direction="scale">
-            <HotspotScene />
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══════════ COLLECTIONS ══════════ */}
-      <section className="relative py-20 px-5 sm:px-8 bg-gradient-to-b from-transparent via-ice/70 to-transparent">
-        <div className="max-w-7xl mx-auto">
-          <SectionHead
-            eyebrow="The Collection"
-            title="Four Ranges, One Design Language"
-            highlight={['Language']}
-            description="Each range shares the same proportions, joinery details and finish library, so pieces can be combined across an entire property."
+            eyebrow="Accommodations"
+            title="Our 4 Luxury Suites"
+            highlight={['Luxury', 'Suites']}
+            description="Every room at Velenburg is an all-inclusive Luxury Suite at PKR 18,000 / Night. Each suite includes a tufted king bed, private sunroom sitting area, in-room electric kettle with Tapal Green Tea, and signature toiletries kit."
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {collections.map((c, i) => (
-              <Reveal key={c.title} delay={i * 0.1} direction="up">
-                <Parallax distance={i % 2 === 0 ? 26 : -26}>
-                  <TiltCard depth={10}>
-                    <Link
-                      to={c.link}
-                      onClick={click}
-                      className="group relative block aspect-[3/4] rounded-[22px] overflow-hidden bg-abyss"
-                    >
-                      <img
-                        src={c.image}
-                        alt={c.title}
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-[1.2s] ease-out"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-abyss via-abyss/25 to-cyan-deep/10" />
-
-                      <span className="absolute top-4 left-4 glass-dark px-2.5 py-1 rounded-full text-[9px] type-eyebrow text-cyan-glow">
-                        {c.tag}
-                      </span>
-
-                      <div className="absolute bottom-0 inset-x-0 p-5">
-                        <h3 className="type-title text-[19px] text-white">{c.title}</h3>
-                        <span className="block text-[11.5px] text-crystal/70 mt-1.5 leading-snug">
-                          {c.sub}
-                        </span>
-                        <div className="mt-3 h-px w-full bg-white/15 overflow-hidden">
-                          <span className="block h-full w-0 bg-gradient-to-r from-teal-glow to-cyan-glow group-hover:w-full transition-all duration-700" />
-                        </div>
-                      </div>
-
-                      <span className="absolute top-4 right-4 h-9 w-9 grid place-items-center rounded-full bg-white/15 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 group-hover:rotate-45 transition-all duration-500">
-                        <ArrowUpRight size={15} />
-                      </span>
-                    </Link>
-                  </TiltCard>
-                </Parallax>
-              </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+            {ROOMS_DATA.map((room) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+                onViewDetails={handleOpenDetails}
+                onSelectForBooking={() => handleOpenBooking(room)}
+              />
             ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link
+              to="/collections"
+              onClick={click}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md cursor-pointer"
+            >
+              <span>View All 4 Suites & Full Floorplans</span>
+              <ArrowRight size={16} strokeWidth={1.75} />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ══════════ MATERIALS ══════════ */}
-      <section className="relative py-24 px-5 sm:px-8 bg-abyss overflow-hidden">
-        <AuroraBackground variant="dark" />
-        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-5">
-            <SectionHead
-              eyebrow="Materials"
-              title="Specified by Origin, Not by Catalogue"
-              highlight={['Origin,']}
-              description="We name the quarry, the mill and the maker behind every surface. Full provenance documentation accompanies each order."
-              align="left"
-              dark
+      {/* ══════════ ANNOTATED SUITE INTERIOR (+ PINS) ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-alabaster">
+        <div className="max-w-7xl mx-auto">
+          <SectionHead
+            eyebrow="Interactive Experience"
+            title="In-Room Luxury & Amenities"
+            highlight={['Amenities']}
+            description="Inspect the authentic features included in each suite. Tap the interactive hotspot pins (+) to view our tufted king beds, electric kettle tea station, and Velenburg branded toiletries."
+          />
+
+          <div className="mt-10">
+            <AnnotatedSuitePin
+              imageSrc="/images/room-2/photo-1.jpg"
+              imageAlt="Room 2 Luxury Suite Interior"
+              hotspots={ROOMS_DATA[1].hotspots || []}
+              title="Suite 02 — Vertical Wood Feature Wall & Sunroom"
+              subtitle="All 4 rooms feature tufted king beds, in-room kettle tray, and toiletries"
+              onInspectSuite={() => handleOpenDetails(ROOMS_DATA[1])}
             />
-            <Reveal delay={0.2}>
-              <Link
-                to="/bespoke"
-                onClick={click}
-                className="inline-flex items-center gap-2.5 rounded-full bg-white text-ink px-6 py-3 text-[10.5px] type-eyebrow hover:bg-cyan-glow transition-colors group"
-              >
-                <Layers size={14} className="text-teal-deep" />
-                Request a Sample Box
-                <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Reveal>
-          </div>
-
-          <div className="lg:col-span-7">
-            <Stagger className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {materials.map((m) => (
-                <StaggerItem key={m.name}>
-                  <TiltCard depth={8}>
-                    <div className="glass-dark rounded-[22px] p-5 text-white h-full">
-                      <div className="flex items-start justify-between mb-4">
-                        <span
-                          className="h-9 w-9 rounded-xl border border-white/20 shadow-inner shrink-0"
-                          style={{ background: `linear-gradient(140deg, ${m.hex}, #06110F)` }}
-                        />
-                        <span className="text-[9.5px] type-eyebrow text-cyan-glow/80 text-right">
-                          {m.origin}
-                        </span>
-                      </div>
-                      <h4 className="type-title text-[15.5px]">{m.name}</h4>
-                      <p className="type-body text-[11.5px] text-crystal/60 mt-1.5">{m.note}</p>
-                    </div>
-                  </TiltCard>
-                </StaggerItem>
-              ))}
-            </Stagger>
           </div>
         </div>
       </section>
 
-      {/* ══════════ PROCESS ══════════ */}
-      <section className="relative py-20 px-5 sm:px-8">
-        <div className="max-w-7xl mx-auto">
-          <SectionHead
-            eyebrow="How We Work"
-            title="A Clear Process, From Drawing to Installation"
-            highlight={['Installation']}
-            description="Most commissions complete within eight to fourteen weeks. You will have one named contact throughout."
-          />
-          <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {process.map((p, i) => (
-              <StaggerItem key={p.step}>
-                <TiltCard depth={8}>
-                  <div className="glass rounded-[22px] p-7 h-full relative">
-                    <span className="type-num text-[2.4rem] text-cyan-core/25 leading-none">
-                      0{i + 1}
-                    </span>
-                    <h4 className="type-title text-[16.5px] text-ink mt-3">{p.step}</h4>
-                    <p className="type-body text-[12px] text-slate-cool/75 mt-2.5">{p.text}</p>
-                  </div>
-                </TiltCard>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </div>
-      </section>
+      {/* ══════════ MOUNTAIN VIEW LOUNGE & OPEN TERRACE ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-[#0F172A] text-alabaster overflow-hidden">
+        <div className="relative max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFBF77]">
+                Shared Guest Access
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-white tracking-tight mt-2">
+                Mountain View Lounge & Open Terrace
+              </h2>
+              <p className="text-base font-normal leading-relaxed text-slate-300 mt-3 max-w-2xl">
+                Relax in our polished wooden-ceiling indoor lounge with woven cane seating and gas patio heaters, or step onto the open stone terrace overlooking the pine valleys of Murree. A clean self-use guest kitchen space is available for drinks and snacks (no cooked meals or dinner service).
+              </p>
+            </div>
 
-      {/* ══════════ SHOWROOM PROMO ══════════ */}
-      <section className="relative py-16 px-5 sm:px-8">
-        <div className="max-w-7xl mx-auto">
-          <Reveal direction="scale">
-            <div className="relative rounded-[28px] overflow-hidden shadow-lux bg-teal-abyss">
-              <ImageMask
-                src="https://images.pexels.com/photos/14036253/pexels-photo-14036253.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=1600"
-                alt="Reception hall interior"
-                className="h-[440px] md:h-[540px]"
-                imgClassName="scale-105"
-              />
+            <Link
+              to="/bespoke"
+              onClick={click}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white text-slate-900 hover:border-[#B48A3E] px-6 py-3 text-sm font-semibold transition-all shadow-sm self-start md:self-auto cursor-pointer"
+            >
+              <span>Explore Lounge Gallery</span>
+              <ArrowRight size={15} strokeWidth={1.75} />
+            </Link>
+          </div>
 
-              {/* layered teal-to-cyan wash instead of flat black */}
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-abyss via-teal-abyss/85 to-teal-abyss/10" />
-              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-abyss/80 via-transparent to-transparent mix-blend-multiply" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_50%,rgba(13,148,136,0.55),transparent_60%)]" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_18%,rgba(34,211,238,0.28),transparent_55%)]" />
-
-              {/* drifting light orbs + grid for depth */}
-              <div className="pointer-events-none absolute -bottom-28 left-10 w-[420px] h-[420px] rounded-full bg-teal-glow/25 blur-[120px] animate-aurora" />
+          {/* Real Photo Grid of Terrace & Lounge */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {TERRACE_LOUNGE_IMAGES.slice(0, 6).map((item, index) => (
               <div
-                className="pointer-events-none absolute -top-24 left-1/3 w-[340px] h-[340px] rounded-full bg-cyan-core/25 blur-[110px] animate-aurora"
-                style={{ animationDelay: '-7s' }}
-              />
-              <div className="absolute inset-0 grid-lines opacity-30" />
-
-              <div className="absolute inset-0 flex items-center">
-                <div className="px-7 sm:px-12 max-w-xl text-white">
-                  <span className="type-eyebrow text-[9.5px] text-cyan-glow inline-flex items-center gap-2">
-                    <Boxes size={12} /> The Online Showroom
+                key={index}
+                className="group relative rounded-2xl overflow-hidden bg-slate-900 border border-gold/25 shadow-card hover:border-gold/60 hover:shadow-2xl transition-all duration-300"
+              >
+                <div className="aspect-[4/3] w-full overflow-hidden">
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-transparent to-transparent opacity-80" />
+                </div>
+                <div className="absolute bottom-0 inset-x-0 p-5">
+                  <span className="text-[10px] uppercase font-bold text-gold-light tracking-wider block mb-1">
+                    Retreat Amenity
                   </span>
-                  <div className="rule-accent w-14 mt-3" />
-                  <h2 className="type-display mt-5 text-[27px] sm:text-4xl md:text-[42px] text-white">
-                    <TextReveal text="See the Room Before" />{' '}
-                    <span className="text-gradient-light">You Commission It.</span>
-                  </h2>
-                  <p className="type-lead mt-4 text-[13.5px] text-crystal/75 measure">
-                    Three fully staged interiors, viewable in your browser. Adjust the lighting from
-                    morning to evening and judge how each finish reads at every hour of the day.
+                  <h4 className="text-base font-bold text-white group-hover:text-gold-light transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-alabaster/70 mt-1 leading-snug line-clamp-2">
+                    {item.description}
                   </p>
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    <Link
-                      to="/virtual-tour"
-                      onClick={click}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-ink text-[10.5px] type-eyebrow hover:bg-cyan-glow transition-colors group"
-                    >
-                      Enter the Showroom
-                      <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                    <Link
-                      to="/about"
-                      onClick={click}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 backdrop-blur-md text-white text-[10.5px] type-eyebrow border border-cyan-glow/25 hover:bg-white/20 hover:border-cyan-glow/50 transition-colors"
-                    >
-                      <Star size={13} className="text-cyan-glow" /> About the Studio
-                    </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ OFFICIAL INSTAGRAM HIGHLIGHTS (@velenburg) ══════════ */}
+      <InstagramHighlights />
+
+      {/* ══════════ TRAVELER GUIDE, SEASONS & FAQS ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-alabaster">
+        <div className="max-w-7xl mx-auto">
+          <TravelerGuide />
+        </div>
+      </section>
+
+      {/* ══════════ DIRECT WHATSAPP VIP RESERVATION CARD ══════════ */}
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-alabaster">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative rounded-2xl overflow-hidden bg-[#0F172A] text-alabaster border border-slate-700/80 shadow-2xl p-6 sm:p-10 md:p-14">
+            {/* Ambient Lighting Orbs */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[#B48A3E]/10 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10">
+              {/* Header Badges */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-6 border-b border-white/10">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#B48A3E]/40 text-[#DFBF77] text-xs font-semibold uppercase tracking-[0.2em]">
+                  <Sparkles size={14} strokeWidth={1.75} className="text-[#B48A3E]" />
+                  <span>Direct Host Reservations · Gharial Camp</span>
+                </div>
+
+                <div className="inline-flex items-center gap-2 text-xs font-medium text-white bg-black/40 px-3.5 py-1.5 rounded-full border border-white/15">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Uniform Rate:</span>
+                  <span className="font-bold text-white text-sm">PKR 18,000 / Night</span>
+                </div>
+              </div>
+
+              {/* Main Headline & Description */}
+              <div className="max-w-3xl">
+                <h2 className="text-3xl md:text-4xl font-bold leading-[1.2] text-white tracking-tight">
+                  Reserve Your Luxury Mountain Suite Directly on WhatsApp
+                </h2>
+
+                <p className="mt-4 text-base font-normal leading-relaxed text-slate-300 max-w-2xl">
+                  No credit card forms, booking markups, or third-party fees. Check live suite availability, calculate your stay total at our uniform rate of <strong>PKR 18,000 / Night</strong>, and message retreat owner Mirza directly on WhatsApp for instant confirmation.
+                </p>
+              </div>
+
+              {/* 4 In-Suite Amenities & Policy Micro-Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-8 pt-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#B48A3E]/15 border border-[#B48A3E]/30 flex items-center justify-center shrink-0 text-[#DFBF77]">
+                    <CheckCircle2 size={16} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-wider text-[#DFBF77] font-semibold block">Rate Guarantee</span>
+                    <p className="text-sm text-white font-semibold mt-0.5">PKR 18,000 / Night</p>
+                    <span className="text-xs text-slate-400 block font-normal">All 4 luxury suites</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#B48A3E]/15 border border-[#B48A3E]/30 flex items-center justify-center shrink-0 text-[#DFBF77]">
+                    <Coffee size={16} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-wider text-[#DFBF77] font-semibold block">In-Room Tea Station</span>
+                    <p className="text-sm text-white font-semibold mt-0.5">Electric Kettle & Tea</p>
+                    <span className="text-xs text-slate-400 block font-normal">Complimentary Tapal sachets</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#B48A3E]/15 border border-[#B48A3E]/30 flex items-center justify-center shrink-0 text-[#DFBF77]">
+                    <Sparkles size={16} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-wider text-[#DFBF77] font-semibold block">Luxury Amenities</span>
+                    <p className="text-sm text-white font-semibold mt-0.5">Velenburg Toiletries Kit</p>
+                    <span className="text-xs text-slate-400 block font-normal">Signature black & gold kit</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#B48A3E]/15 border border-[#B48A3E]/30 flex items-center justify-center shrink-0 text-[#DFBF77]">
+                    <Mountain size={16} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-wider text-[#DFBF77] font-semibold block">7,200 Ft Ridge</span>
+                    <p className="text-sm text-white font-semibold mt-0.5">Mountain Lounge Access</p>
+                    <span className="text-xs text-slate-400 block font-normal">Open terrace & patio heaters</span>
                   </div>
                 </div>
               </div>
+
+              {/* Action Buttons Row (Strict Standard Buttons) */}
+              <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBooking()}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md cursor-pointer"
+                  >
+                    <MessageCircle size={16} strokeWidth={1.75} className="fill-white" />
+                    <span>Reserve Suite via WhatsApp</span>
+                    <ArrowRight size={15} strokeWidth={1.75} />
+                  </button>
+
+                  <a
+                    href={`tel:${RETREAT_CONFIG.contact.displayPhone.replace(/\s+/g, '')}`}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-slate-300 bg-white/10 hover:bg-white text-white hover:text-slate-900 text-sm font-semibold transition-all cursor-pointer"
+                  >
+                    <span>Direct Call: {RETREAT_CONFIG.contact.displayPhone}</span>
+                  </a>
+                </div>
+
+                {/* Policies & Google Rating Pill */}
+                <div className="flex flex-wrap items-center sm:justify-end gap-2 text-xs text-slate-300">
+                  <span className="flex items-center gap-1.5 text-amber-300 font-semibold bg-black/40 px-3 py-1 rounded-full border border-white/10">
+                    ★ 4.9 (27 Google Reviews)
+                  </span>
+                  <span>•</span>
+                  <span>Check-in: 2:00 PM | Check-out: 12:00 PM</span>
+                </div>
+              </div>
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
-      <InViewLine className="max-w-6xl mx-auto" />
+      {/* ROOM DETAIL INSPECTION MODAL */}
+      <RoomDetailModal
+        isOpen={Boolean(detailRoom)}
+        room={detailRoom}
+        onClose={() => setDetailRoom(null)}
+        onBookNow={(room) => {
+          setDetailRoom(null);
+          handleOpenBooking(room);
+        }}
+      />
 
-      {/* ══════════ CLOSING ══════════ */}
-      <section className="relative py-24 px-5 sm:px-8 overflow-hidden">
-        <AuroraBackground />
-        <div className="relative max-w-3xl mx-auto text-center">
-          <Reveal direction="scale">
-            <span className="type-eyebrow text-[9.5px] text-teal-deep">Next Step</span>
-            <div className="rule-accent w-16 mt-3 mx-auto" />
-            <h2 className="type-display mt-6 text-[28px] sm:text-4xl md:text-5xl text-ink">
-              <TextReveal text="Begin With a Conversation," />{' '}
-              <span className="text-gradient">Not a Catalogue.</span>
-            </h2>
-            <p className="type-lead mt-6 text-[14px] text-slate-cool/80 measure mx-auto">
-              Tell us about the space, the timeline and the budget. We will respond within two working
-              hours with an honest view on whether we are the right studio for the project.
-            </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
-              <MagneticButton>
-                <Link
-                  to="/contact"
-                  onClick={click}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-teal-deep via-cyan-deep to-cyan-core text-white text-[10.5px] type-eyebrow shadow-lux hover:brightness-110 transition-all group"
-                >
-                  Book an Appointment
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </MagneticButton>
-              <MagneticButton>
-                <Link
-                  to="/bespoke"
-                  onClick={click}
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full glass text-teal-deep text-[10.5px] type-eyebrow border border-cyan-core/25 hover:bg-white transition-colors"
-                >
-                  Discuss a Commission
-                </Link>
-              </MagneticButton>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      {/* WHATSAPP BOOKING MODAL */}
+      <WhatsAppBookingModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialRoom={selectedRoom}
+      />
     </PageTransition>
   );
 }
