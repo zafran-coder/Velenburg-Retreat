@@ -205,11 +205,13 @@ export async function fetchLiveAvailability(roomId?: number): Promise<BlockedRan
 }
 
 /**
- * Server-Side Passcode Verification
+ * Server-Side Passcode Verification with Rate-Limiting & Cryptographic Session Token
  */
-export async function verifyAdminPasscode(passcode: string): Promise<boolean> {
+export async function verifyAdminPasscode(
+  passcode: string
+): Promise<{ success: boolean; token?: string; error?: string }> {
   const trimmed = passcode.trim();
-  if (!trimmed) return false;
+  if (!trimmed) return { success: false, error: 'Passcode cannot be empty.' };
 
   try {
     const res = await fetch('/api/admin', {
@@ -223,28 +225,29 @@ export async function verifyAdminPasscode(passcode: string): Promise<boolean> {
       }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      return Boolean(data.success);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      return { success: true, token: data.token || trimmed };
     }
-    return false;
-  } catch (err) {
+    return { success: false, error: data.error || 'Incorrect admin passcode.' };
+  } catch (err: any) {
     console.error('[Admin Auth Error]:', err);
-    return false;
+    return { success: false, error: 'Connection to authentication service failed.' };
   }
 }
 
 /**
- * Fetch all bookings from Supabase (Requires Admin Password)
+ * Fetch all bookings from Supabase (Requires Admin Token / Password)
  * Falls back to LocalStorage inquiries if Supabase is paused
  */
-export async function fetchAdminBookings(adminPassword: string): Promise<BookingRecord[]> {
+export async function fetchAdminBookings(adminToken: string): Promise<BookingRecord[]> {
   try {
     const res = await fetch('/api/bookings', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'x-admin-password': adminPassword,
+        'Authorization': `Bearer ${adminToken}`,
+        'x-admin-password': adminToken,
       },
     });
 
@@ -272,7 +275,7 @@ export async function createLiveBlock(
   end: string,
   guestName = 'Owner Reservation',
   notes = 'Manual block via Admin',
-  adminPassword = ''
+  adminToken = ''
 ): Promise<BlockedRange> {
   const diffDays = Math.max(
     1,
@@ -300,7 +303,8 @@ export async function createLiveBlock(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-password': adminPassword,
+        'Authorization': `Bearer ${adminToken}`,
+        'x-admin-password': adminToken,
       },
       body: JSON.stringify({
         room_id: roomId,
@@ -314,7 +318,7 @@ export async function createLiveBlock(
         status: 'confirmed',
         source: 'manual_block',
         notes,
-        adminPassword,
+        adminPassword: adminToken,
       }),
     });
 
@@ -335,7 +339,7 @@ export async function createLiveBlock(
 /**
  * Remove / Unblock a booking or date block
  */
-export async function removeLiveBlock(id: string, adminPassword = ''): Promise<void> {
+export async function removeLiveBlock(id: string, adminToken = ''): Promise<void> {
   // 1. Immediately remove from local memory & storage
   inMemoryBlockedRanges = inMemoryBlockedRanges.filter((b) => b.id !== id);
   saveToLocalStorage(STORAGE_BLOCKS_KEY, inMemoryBlockedRanges);
@@ -347,9 +351,10 @@ export async function removeLiveBlock(id: string, adminPassword = ''): Promise<v
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-password': adminPassword,
+        'Authorization': `Bearer ${adminToken}`,
+        'x-admin-password': adminToken,
       },
-      body: JSON.stringify({ id, adminPassword }),
+      body: JSON.stringify({ id, adminPassword: adminToken }),
     });
   } catch (err) {
     console.info('[Delete Block] Supabase paused/offline. Removed locally in fallback storage.');
@@ -359,13 +364,14 @@ export async function removeLiveBlock(id: string, adminPassword = ''): Promise<v
 /**
  * Fetch Room iCal Sync Configurations (Supabase + LocalStorage Fallback)
  */
-export async function fetchLiveRoomConfigs(adminPassword = ''): Promise<RoomICalConfig[]> {
+export async function fetchLiveRoomConfigs(adminToken = ''): Promise<RoomICalConfig[]> {
   try {
     const res = await fetch('/api/admin?action=rooms', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'x-admin-password': adminPassword,
+        'Authorization': `Bearer ${adminToken}`,
+        'x-admin-password': adminToken,
       },
     });
 
@@ -395,7 +401,7 @@ export async function saveLiveRoomConfig(
   roomId: number,
   airbnbUrl: string,
   bookingUrl: string,
-  adminPassword = ''
+  adminToken = ''
 ): Promise<void> {
   // 1. Update in-memory & LocalStorage
   const idx = inMemoryConfigs.findIndex((c) => c.roomId === roomId);
@@ -419,14 +425,15 @@ export async function saveLiveRoomConfig(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-password': adminPassword,
+        'Authorization': `Bearer ${adminToken}`,
+        'x-admin-password': adminToken,
       },
       body: JSON.stringify({
         action: 'update_ical_urls',
         roomId,
         airbnbIcalUrl: airbnbUrl.trim(),
         bookingComIcalUrl: bookingUrl.trim(),
-        password: adminPassword,
+        password: adminToken,
       }),
     });
   } catch (err) {

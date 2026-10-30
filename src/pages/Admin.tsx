@@ -119,17 +119,17 @@ export default function Admin() {
     setErrorMsg('');
 
     try {
-      const isValid = await verifyAdminPasscode(passcode);
-      if (isValid) {
+      const result = await verifyAdminPasscode(passcode);
+      if (result.success && result.token) {
         luxuryAudio.playSuccessChime();
         setIsAuthenticated(true);
-        setStoredPassword(passcode.trim());
+        setStoredPassword(result.token);
         sessionStorage.setItem('velenburg_admin_auth', 'true');
-        sessionStorage.setItem('velenburg_admin_token', passcode.trim());
-        await loadDatabaseState(passcode.trim());
+        sessionStorage.setItem('velenburg_admin_token', result.token);
+        await loadDatabaseState(result.token);
       } else {
         luxuryAudio.playChime(300, 0.15);
-        setErrorMsg('Access Denied: Invalid admin passcode verified on server.');
+        setErrorMsg(result.error || 'Access Denied: Invalid admin passcode verified on server.');
       }
     } catch {
       setErrorMsg('Failed to connect to authentication server. Please retry.');

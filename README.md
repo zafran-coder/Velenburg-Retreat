@@ -65,13 +65,19 @@ npm run build
 
 ---
 
-## 🔒 Security
+## 🔒 Enterprise Security Architecture
 
-- All administrative actions (blocking dates, unblocking, updating OTA feeds) require server-side authentication verification.
-- Sensitive environment variables are excluded from the client-side JavaScript bundle and protected via `.gitignore`.
-- Row-Level Security (RLS) policies guard database access.
+- **Brute-Force Rate Limiting & Account Lockout:** Tracks failed login attempts per client IP. Automatically locks out attackers for 15 minutes after 5 consecutive failed attempts (HTTP 429).
+- **Cryptographic HMAC-SHA256 Session Tokens:** Replaces plaintext password transmission with signed ephemeral session tokens (`vln_adm...`) expiring in 12 hours.
+- **Timing-Safe Credential Verification:** Uses Node.js `crypto.timingSafeEqual` with SHA-256 digests to eliminate side-channel timing attacks.
+- **SSRF (Server-Side Request Forgery) Defense:** Validates all incoming iCal calendar feeds; strictly forbids internal loopback (`localhost`, `127.0.0.1`), private subnets (RFC 1918), and cloud metadata endpoints (`169.254.169.254`).
+- **Customer PII & Contact Privacy:** Revokes public `SELECT` access on raw `bookings` table (`REVOKE SELECT ON bookings FROM anon;`). Availability queries are anonymized on the server so guest names, phone numbers, and payment notes are never exposed to public scrapers.
+- **Calendar Anti-Hijacking RLS Policies:** Restricts unauthenticated booking inserts to `status = 'pending_whatsapp'` and `source = 'website'`. Attackers cannot forge confirmed blocks or manipulate calendar availability.
+- **Stored XSS Prevention:** Strict input sanitization strips HTML/script tags from guest names, phone numbers, and booking notes.
+- **Secret Isolation:** Production secrets (`SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`) are strictly confined to serverless functions and isolated from the client bundle.
 
 ---
 
 ## 📄 License
 Private repository for Velenburg Retreat Murree. All rights reserved.
+

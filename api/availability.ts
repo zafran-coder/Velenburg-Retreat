@@ -1,5 +1,6 @@
 import ical from 'node-ical';
-import { getSupabaseAdmin } from './_lib/supabaseClient';
+import { getSupabaseAdmin, verifyAdminAuth } from './_lib/supabaseClient';
+import { isSafeIcalUrl } from './_lib/security';
 
 export interface BlockedRangeItem {
   id: string;
@@ -12,10 +13,14 @@ export interface BlockedRangeItem {
 }
 
 export default async function handler(req: any, res: any) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '*';
+
+  // Security headers
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-password');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
@@ -34,6 +39,9 @@ export default async function handler(req: any, res: any) {
     const url = new URL(req.url || '', 'http://localhost');
     const roomIdParam = url.searchParams.get('roomId') || (req.query && req.query.roomId);
     const targetRoomId = roomIdParam ? Number(roomIdParam) : null;
+
+    const authHeader = req.headers['authorization'] || req.headers['x-admin-password'];
+    const isAdmin = verifyAdminAuth(Array.isArray(authHeader) ? authHeader[0] : authHeader);
 
     const supabase = getSupabaseAdmin();
     if (!supabase) {
@@ -76,14 +84,15 @@ export default async function handler(req: any, res: any) {
       console.error('[API Availability] Error fetching bookings:', bookingsError.message);
     }
 
+    // Strict Data Privacy: Anonymize guest names & strip private notes for public visitors
     const blockedRanges: BlockedRangeItem[] = (bookings || []).map((b) => ({
       id: b.id,
       roomId: b.room_id,
       start: typeof b.check_in === 'string' ? b.check_in.split('T')[0] : b.check_in,
       end: typeof b.check_out === 'string' ? b.check_out.split('T')[0] : b.check_out,
       source: (b.source as BlockedRangeItem['source']) || 'website',
-      guestName: b.guest_name,
-      notes: b.notes || undefined,
+      guestName: isAdmin ? b.guest_name : b.source === 'manual_block' ? 'Owner Reserved' : 'Reserved',
+      notes: isAdmin ? b.notes || undefined : undefined,
     }));
 
     // 3. Sync live iCal calendars from Airbnb & Booking.com for each room
@@ -96,6 +105,12 @@ export default async function handler(req: any, res: any) {
       ].filter((f) => Boolean(f.url && f.url.trim().startsWith('http')));
 
       for (const feed of feeds) {
+        // SSRF Safety Check before network request
+        if (!isSafeIcalUrl(feed.url!).safe) {
+          console.warn(`[SSRF Blocked] Insecure iCal feed rejected for room ${room.id} (${feed.source})`);
+          continue;
+        }
+
         try {
           const events = await ical.async.fromURL(feed.url!);
           for (const key in events) {
@@ -111,7 +126,7 @@ export default async function handler(req: any, res: any) {
                   end: endDate.toISOString().split('T')[0],
                   source: feed.source,
                   guestName: `${feed.source === 'airbnb' ? 'Airbnb' : 'Booking.com'} Reservation`,
-                  notes: `Live synced via ${feed.source} iCal feed`,
+                  notes: isAdmin ? `Live synced via ${feed.source} iCal feed` : undefined,
                 });
               }
             }

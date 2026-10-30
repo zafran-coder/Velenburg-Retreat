@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, verifyAdminAuth } from './_lib/supabaseClient';
+import { sanitizeText, isValidDateStr } from './_lib/security';
 
 async function parseJsonBody(req: any): Promise<any> {
   if (req.body && typeof req.body === 'object') return req.body;
@@ -27,10 +28,14 @@ async function parseJsonBody(req: any): Promise<any> {
 }
 
 export default async function handler(req: any, res: any) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '*';
+
+  // Secure headers
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-password');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
@@ -46,24 +51,28 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const authHeader = req.headers['x-admin-password'] || req.headers['authorization'];
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-password'];
   const isAdmin = verifyAdminAuth(Array.isArray(authHeader) ? authHeader[0] : authHeader);
 
   // --------------------------------------------------------------------------
-  // GET: List Bookings
+  // GET: List Bookings (Strict Data Privacy Filtering)
   // --------------------------------------------------------------------------
   if (req.method === 'GET') {
     try {
       const url = new URL(req.url || '', 'http://localhost');
       const roomId = url.searchParams.get('roomId');
+      const numRoomId = roomId ? Number(roomId) : null;
 
-      // Security & Data Privacy: Non-admins NEVER receive guest phone numbers or private notes
+      // Strict Data Privacy: Non-admins NEVER receive guest phone numbers, full names, or notes
       let query = isAdmin
         ? supabase.from('bookings').select('*')
-        : supabase.from('bookings').select('id, room_id, check_in, check_out, source, status').or('status.eq.confirmed,source.eq.manual_block');
+        : supabase
+            .from('bookings')
+            .select('id, room_id, check_in, check_out, source, status')
+            .or('status.eq.confirmed,source.eq.manual_block');
 
-      if (roomId) {
-        query = query.eq('room_id', Number(roomId));
+      if (numRoomId && numRoomId >= 1 && numRoomId <= 4) {
+        query = query.eq('room_id', numRoomId);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -87,7 +96,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // --------------------------------------------------------------------------
-  // POST: Create Booking or Manual Block
+  // POST: Create Booking Inquiry or Admin Manual Block
   // --------------------------------------------------------------------------
   if (req.method === 'POST') {
     try {
@@ -108,45 +117,75 @@ export default async function handler(req: any, res: any) {
         adminPassword,
       } = body;
 
+      const numRoomId = Number(room_id);
       const authorized = isAdmin || verifyAdminAuth(adminPassword);
 
-      // Protect manual blocks and confirmed status changes with Admin Password verification
+      // Validation 1: Room ID range check
+      if (isNaN(numRoomId) || numRoomId < 1 || numRoomId > 4) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Valid room_id (1-4) is required.' }));
+        return;
+      }
+
+      // Validation 2: Date formats & chronological order
+      if (!isValidDateStr(check_in) || !isValidDateStr(check_out)) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Valid check_in and check_out dates in YYYY-MM-DD format are required.' }));
+        return;
+      }
+
+      if (new Date(check_in).getTime() >= new Date(check_out).getTime()) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Check-out date must be strictly after check-in date.' }));
+        return;
+      }
+
+      // Validation 3: Anti-Hijacking Security Check
+      // Public non-admin users CANNOT forge confirmed status or manual blocks!
       if ((source === 'manual_block' || status === 'confirmed') && !authorized) {
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
         res.end(
           JSON.stringify({
-            error: 'Unauthorized: Valid ADMIN_PASSWORD is required to create manual blocks or confirm bookings.',
+            error: 'Unauthorized: Valid admin authentication required to create manual blocks or confirm bookings.',
           })
         );
         return;
       }
 
-      if (!room_id || !check_in || !check_out) {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'room_id, check_in, and check_out are required.' }));
-        return;
-      }
+      // Sanitize inputs to prevent Stored XSS and SQL injection payloads
+      const sanitizedName = sanitizeText(guest_name || (source === 'manual_block' ? 'Owner Reservation' : 'Guest'), 100);
+      const sanitizedPhone = sanitizeText(guest_phone || 'N/A', 40);
+      const sanitizedNotes = sanitizeText(notes, 500);
 
-      const generatedRef = booking_ref || `VLN-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+      const computedNights = Math.max(
+        1,
+        Number(nights) || Math.round((new Date(check_out).getTime() - new Date(check_in).getTime()) / 86400000)
+      );
+
+      const generatedRef =
+        sanitizeText(booking_ref, 30) ||
+        `VLN-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
 
       const { data, error } = await supabase
         .from('bookings')
         .insert([
           {
             booking_ref: generatedRef,
-            room_id: Number(room_id),
-            guest_name: guest_name || (source === 'manual_block' ? 'Owner Manual Block' : 'Guest'),
-            guest_phone: guest_phone || 'N/A',
-            guests_count: Number(guests_count) || 2,
+            room_id: numRoomId,
+            guest_name: sanitizedName,
+            guest_phone: sanitizedPhone,
+            guests_count: Math.min(6, Math.max(1, Number(guests_count) || 2)),
             check_in,
             check_out,
-            nights: Number(nights) || 1,
-            total_price_pkr: Number(total_price_pkr) || 18000,
-            status: source === 'manual_block' ? 'confirmed' : status,
-            source,
-            notes,
+            nights: computedNights,
+            total_price_pkr: Math.max(0, Number(total_price_pkr) || computedNights * 18000),
+            status: source === 'manual_block' ? 'confirmed' : authorized ? status : 'pending_whatsapp',
+            source: authorized ? source : 'website',
+            notes: sanitizedNotes,
           },
         ])
         .select()
@@ -171,7 +210,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // --------------------------------------------------------------------------
-  // DELETE: Remove / Unblock a Booking
+  // DELETE: Remove / Unblock a Booking (Strictly Admin Only)
   // --------------------------------------------------------------------------
   if (req.method === 'DELETE') {
     try {
@@ -184,11 +223,11 @@ export default async function handler(req: any, res: any) {
       if (!authorized) {
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Unauthorized: Valid ADMIN_PASSWORD required to delete/unblock.' }));
+        res.end(JSON.stringify({ error: 'Unauthorized: Valid admin authentication required to delete/unblock.' }));
         return;
       }
 
-      if (!id) {
+      if (!id || typeof id !== 'string') {
         res.statusCode = 400;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ error: 'Booking id is required.' }));
@@ -219,4 +258,3 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ error: 'Method not allowed' }));
 }
-

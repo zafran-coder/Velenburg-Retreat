@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { timingSafeCompare, verifyAdminSessionToken } from './security';
 
 // Lazy-loaded Supabase client instance
 let cachedClient: SupabaseClient | null = null;
@@ -32,12 +33,24 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   return cachedClient;
 }
 
+/**
+ * Verifies admin authentication using either:
+ * 1. Cryptographically signed HMAC Admin Session Token (Bearer vln_adm...)
+ * 2. Timing-safe verification of the configured ADMIN_PASSWORD
+ */
 export function verifyAdminAuth(authHeaderOrPassword?: string | null): boolean {
-  const configuredPassword = process.env.ADMIN_PASSWORD;
-  if (!configuredPassword || !authHeaderOrPassword) return false;
+  if (!authHeaderOrPassword) return false;
 
-  // Clean Bearer prefix if provided
   const cleaned = authHeaderOrPassword.replace(/^Bearer\s+/i, '').trim();
-  return cleaned === configuredPassword.trim();
-}
 
+  // First check if it's an HMAC session token
+  if (cleaned.startsWith('vln_adm.')) {
+    return verifyAdminSessionToken(cleaned);
+  }
+
+  // Otherwise perform a timing-safe password comparison
+  const configuredPassword = process.env.ADMIN_PASSWORD;
+  if (!configuredPassword) return false;
+
+  return timingSafeCompare(cleaned, configuredPassword.trim());
+}
